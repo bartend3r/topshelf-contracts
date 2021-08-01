@@ -2,13 +2,14 @@
 
 pragma solidity 0.6.11;
 
+import "./Interfaces/IBorrowerOperations.sol";
 import "./Interfaces/ITroveManager.sol";
 import "./Interfaces/IStabilityPool.sol";
 import "./Interfaces/ICollSurplusPool.sol";
 import "./Interfaces/ILUSDToken.sol";
 import "./Interfaces/ISortedTroves.sol";
 import "./Interfaces/ILQTYToken.sol";
-import "./Interfaces/ILQTYStaking.sol";
+import "./Interfaces/IMultiRewards.sol";
 import "./Dependencies/LiquityBase.sol";
 import "./Dependencies/Ownable.sol";
 import "./Dependencies/CheckContract.sol";
@@ -30,8 +31,9 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
     ILUSDToken public override lusdToken;
 
     ILQTYToken public override lqtyToken;
+    address public collateralToken;
 
-    ILQTYStaking public override lqtyStaking;
+    IMultiRewards public override lqtyStaking;
 
     // A doubly linked list of Troves, sorted by their sorted by their collateral ratios
     ISortedTroves public sortedTroves;
@@ -171,7 +173,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         IActivePool activePool;
         IDefaultPool defaultPool;
         ILUSDToken lusdToken;
-        ILQTYStaking lqtyStaking;
+        IMultiRewards lqtyStaking;
         ISortedTroves sortedTroves;
         ICollSurplusPool collSurplusPool;
         address gasPoolAddress;
@@ -270,7 +272,8 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         lusdToken = ILUSDToken(_lusdTokenAddress);
         sortedTroves = ISortedTroves(_sortedTrovesAddress);
         lqtyToken = ILQTYToken(_lqtyTokenAddress);
-        lqtyStaking = ILQTYStaking(_lqtyStakingAddress);
+        lqtyStaking = IMultiRewards(_lqtyStakingAddress);
+        collateralToken = address(IBorrowerOperations(_borrowerOperationsAddress).collateralToken());
 
         emit BorrowerOperationsAddressChanged(_borrowerOperationsAddress);
         emit ActivePoolAddressChanged(_activePoolAddress);
@@ -497,7 +500,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
             activePool,
             defaultPool,
             ILUSDToken(address(0)),
-            ILQTYStaking(address(0)),
+            IMultiRewards(address(0)),
             sortedTroves,
             ICollSurplusPool(address(0)),
             address(0)
@@ -1003,7 +1006,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
 
         // Send the ETH fee to the LQTY staking contract
         contractsCache.activePool.sendCollateral(address(contractsCache.lqtyStaking), totals.ETHFee, false);
-        contractsCache.lqtyStaking.increaseF_ETH(totals.ETHFee);
+        contractsCache.lqtyStaking.notifyRewardAmount(collateralToken, totals.ETHFee);
 
         totals.ETHToSendToRedeemer = totals.totalETHDrawn.sub(totals.ETHFee);
 
