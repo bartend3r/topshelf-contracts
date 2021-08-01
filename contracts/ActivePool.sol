@@ -23,6 +23,7 @@ contract ActivePool is Ownable, CheckContract, IActivePool {
 
     address public borrowerOperationsAddress;
     address public troveManagerAddress;
+    address public flashLenderAddress;
     address public stabilityPoolAddress;
     address public defaultPoolAddress;
     IERC20 public override collateralToken;
@@ -42,7 +43,8 @@ contract ActivePool is Ownable, CheckContract, IActivePool {
         address _borrowerOperationsAddress,
         address _troveManagerAddress,
         address _stabilityPoolAddress,
-        address _defaultPoolAddress
+        address _defaultPoolAddress,
+        address _flashLenderAddress
     )
         external
         onlyOwner
@@ -56,7 +58,9 @@ contract ActivePool is Ownable, CheckContract, IActivePool {
         troveManagerAddress = _troveManagerAddress;
         stabilityPoolAddress = _stabilityPoolAddress;
         defaultPoolAddress = _defaultPoolAddress;
+        flashLenderAddress = _flashLenderAddress;
         collateralToken = IBorrowerOperations(_borrowerOperationsAddress).collateralToken();
+        collateralToken.approve(_flashLenderAddress, uint(-1));
 
         emit BorrowerOperationsAddressChanged(_borrowerOperationsAddress);
         emit TroveManagerAddressChanged(_troveManagerAddress);
