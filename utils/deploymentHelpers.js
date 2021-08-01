@@ -10,6 +10,7 @@ const CollSurplusPool = artifacts.require("./CollSurplusPool.sol")
 const FunctionCaller = artifacts.require("./TestContracts/FunctionCaller.sol")
 const BorrowerOperations = artifacts.require("./BorrowerOperations.sol")
 const HintHelpers = artifacts.require("./HintHelpers.sol")
+const FlashLender = artifacts.require("./FlashLender.sol")
 
 const LQTYStaking = artifacts.require("./MultiRewards.sol")
 const LQTYToken = artifacts.require("./LQTYToken.sol")
@@ -80,10 +81,12 @@ class DeploymentHelper {
     const functionCaller = await FunctionCaller.new()
     const borrowerOperations = await BorrowerOperations.new()
     const hintHelpers = await HintHelpers.new()
+    const flashLender = await FlashLender.new()
     const lusdToken = await LUSDToken.new(
       troveManager.address,
       stabilityPool.address,
-      borrowerOperations.address
+      borrowerOperations.address,
+      flashLender.address
     )
     const collateral = await MockCollateral.new("Collateral", "CLT")
     LUSDToken.setAsDeployed(lusdToken)
@@ -99,6 +102,7 @@ class DeploymentHelper {
     BorrowerOperations.setAsDeployed(borrowerOperations)
     HintHelpers.setAsDeployed(hintHelpers)
     MockCollateral.setAsDeployed(collateral)
+    FlashLender.setAsDeployed(flashLender)
 
     const coreContracts = {
       priceFeedTestnet,
@@ -266,7 +270,8 @@ class DeploymentHelper {
     contracts.lusdToken = await LUSDToken.new(
       contracts.troveManager.address,
       contracts.stabilityPool.address,
-      contracts.borrowerOperations.address
+      contracts.borrowerOperations.address,
+      contracts.collateral.address
     )
     return contracts
   }
@@ -275,7 +280,8 @@ class DeploymentHelper {
     contracts.lusdToken = await LUSDTokenTester.new(
       contracts.troveManager.address,
       contracts.stabilityPool.address,
-      contracts.borrowerOperations.address
+      contracts.borrowerOperations.address,
+      contracts.collateral.address
     )
     return contracts
   }
@@ -293,8 +299,8 @@ class DeploymentHelper {
     // set contract addresses in the FunctionCaller
     await contracts.functionCaller.setTroveManagerAddress(contracts.troveManager.address)
     await contracts.functionCaller.setSortedTrovesAddress(contracts.sortedTroves.address)
-    
-    // had to switch troveManager/BorrowerOperations order as troveManager reads 
+
+    // had to switch troveManager/BorrowerOperations order as troveManager reads
     // collateral token from BorrowerOperations.
     // set contracts in BorrowerOperations
     await contracts.borrowerOperations.setAddresses(
@@ -343,7 +349,8 @@ class DeploymentHelper {
       contracts.borrowerOperations.address,
       contracts.troveManager.address,
       contracts.stabilityPool.address,
-      contracts.defaultPool.address
+      contracts.defaultPool.address,
+      contracts.flashLender.address
     )
 
     await contracts.defaultPool.setAddresses(
@@ -361,6 +368,15 @@ class DeploymentHelper {
     await contracts.hintHelpers.setAddresses(
       contracts.sortedTroves.address,
       contracts.troveManager.address
+    )
+
+    await contracts.flashLender.setAddresses(
+        LQTYContracts.lqtyStaking.address
+    )
+
+    await contracts.flashLender.setLendSources(
+        [contracts.lusdToken.address, contracts.collateral.address],
+        [contracts.lusdToken.address, contracts.activePool.address]
     )
   }
 
