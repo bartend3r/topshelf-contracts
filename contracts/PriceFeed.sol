@@ -10,6 +10,7 @@ import "./Dependencies/CheckContract.sol";
 import "./Dependencies/BaseMath.sol";
 import "./Dependencies/LiquityMath.sol";
 import "./Dependencies/console.sol";
+import "./Dependencies/IStableSwap.sol";
 
 /*
 * PriceFeed for mainnet deployment, to be connected to Chainlink's live ETH:USD aggregator reference
@@ -26,6 +27,7 @@ contract PriceFeed is CheckContract, BaseMath, IPriceFeed {
 
     AggregatorV3Interface public chainlinkOracle;  // Mainnet Chainlink aggregator
     IStdReference public bandOracle;  // Wrapper contract that calls the Band system
+    IStableSwap public baseStableSwap;
 
     string bandBase;
     string bandQuote;
@@ -85,6 +87,7 @@ contract PriceFeed is CheckContract, BaseMath, IPriceFeed {
     constructor(
         address _chainlinkOracleAddress,
         address _bandOracleAddress,
+        address _baseStableSwap,
         string memory _bandBase,
         string memory _bandQuote
     )
@@ -95,6 +98,9 @@ contract PriceFeed is CheckContract, BaseMath, IPriceFeed {
 
         chainlinkOracle = AggregatorV3Interface(_chainlinkOracleAddress);
         bandOracle = IStdReference(_bandOracleAddress);
+
+        // set to address(0) if the base asset is not a Curve LP token
+        baseStableSwap = IStableSwap(_baseStableSwap);
 
         bandBase = _bandBase;
         bandQuote = _bandQuote;
@@ -127,6 +133,14 @@ contract PriceFeed is CheckContract, BaseMath, IPriceFeed {
     *
     */
     function fetchPrice() external override returns (uint) {
+        uint price = _fetchPrice();
+        if (baseStableSwap != IStableSwap(0)) {
+            price = price.mul(baseStableSwap.get_virtual_price()).div(10**18);
+        }
+        return price;
+    }
+
+    function _fetchPrice() internal returns (uint) {
         // Get current and previous price data from Chainlink, and current price data from Band
         ChainlinkResponse memory chainlinkResponse = _getCurrentChainlinkResponse();
         ChainlinkResponse memory prevChainlinkResponse = _getPrevChainlinkResponse(chainlinkResponse.roundId, chainlinkResponse.decimals);
