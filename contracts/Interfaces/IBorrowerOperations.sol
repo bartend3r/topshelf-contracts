@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 
+import "../Dependencies/IERC20.sol";
+
 pragma solidity 0.6.11;
 
 // Common interface for the Trove Manager.
@@ -22,6 +24,8 @@ interface IBorrowerOperations {
     event TroveUpdated(address indexed _borrower, uint _debt, uint _coll, uint stake, uint8 operation);
     event LUSDBorrowingFeePaid(address indexed _borrower, uint _LUSDFee);
 
+    function collateralToken() external view returns (IERC20);
+
     // --- Functions ---
 
     function setAddresses(
@@ -38,11 +42,11 @@ interface IBorrowerOperations {
         address _collateralStakingAddress
     ) external;
 
-    function openTrove(uint _maxFee, uint _LUSDAmount, address _upperHint, address _lowerHint) external payable;
+    function openTrove(uint _maxFee, uint _collateralAmount, uint _LUSDAmount, address _upperHint, address _lowerHint) external;
 
-    function addColl(address _upperHint, address _lowerHint) external payable;
+    function addColl(uint _collateralAmount, address _upperHint, address _lowerHint) external;
 
-    function moveETHGainToTrove(address _user, address _upperHint, address _lowerHint) external payable;
+    function moveETHGainToTrove(uint _collateralAmount, address _user, address _upperHint, address _lowerHint) external;
 
     function withdrawColl(uint _amount, address _upperHint, address _lowerHint) external;
 
@@ -52,7 +56,7 @@ interface IBorrowerOperations {
 
     function closeTrove() external;
 
-    function adjustTrove(uint _maxFee, uint _collWithdrawal, uint _debtChange, bool isDebtIncrease, address _upperHint, address _lowerHint) external payable;
+    function adjustTrove(uint _maxFee, uint _collDeposit, uint _collWithdrawal, uint _debtChange, bool isDebtIncrease, address _upperHint, address _lowerHint) external;
 
     function claimCollateral() external;
 
