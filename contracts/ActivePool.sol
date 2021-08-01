@@ -2,6 +2,7 @@
 
 pragma solidity 0.6.11;
 
+import './Interfaces/IBorrowerOperations.sol';
 import './Interfaces/IActivePool.sol';
 import "./Dependencies/SafeMath.sol";
 import "./Dependencies/Ownable.sol";
@@ -24,6 +25,7 @@ contract ActivePool is Ownable, CheckContract, IActivePool {
     address public troveManagerAddress;
     address public stabilityPoolAddress;
     address public defaultPoolAddress;
+    IERC20 public override collateralToken;
     uint256 internal ETH;  // deposited ether tracker
     uint256 internal LUSDDebt;
 
@@ -54,6 +56,7 @@ contract ActivePool is Ownable, CheckContract, IActivePool {
         troveManagerAddress = _troveManagerAddress;
         stabilityPoolAddress = _stabilityPoolAddress;
         defaultPoolAddress = _defaultPoolAddress;
+        collateralToken = IBorrowerOperations(_borrowerOperationsAddress).collateralToken();
 
         emit BorrowerOperationsAddressChanged(_borrowerOperationsAddress);
         emit TroveManagerAddressChanged(_troveManagerAddress);
@@ -80,14 +83,14 @@ contract ActivePool is Ownable, CheckContract, IActivePool {
 
     // --- Pool functionality ---
 
-    function sendETH(address _account, uint _amount) external override {
+    function sendCollateral(address _account, uint _amount, bool _notify) external override {
         _requireCallerIsBOorTroveMorSP();
         ETH = ETH.sub(_amount);
         emit ActivePoolETHBalanceUpdated(ETH);
         emit EtherSent(_account, _amount);
 
-        (bool success, ) = _account.call{ value: _amount }("");
-        require(success, "ActivePool: sending ETH failed");
+        require(collateralToken.transfer(_account, _amount), "ActivePool: sending ETH failed");
+        if (_notify) IPool(_account).notifyReceiveCollateral(_amount);
     }
 
     function increaseLUSDDebt(uint _amount) external override {
@@ -128,9 +131,9 @@ contract ActivePool is Ownable, CheckContract, IActivePool {
 
     // --- Fallback function ---
 
-    receive() external payable {
+    function notifyReceiveCollateral(uint _amount) external override {
         _requireCallerIsBorrowerOperationsOrDefaultPool();
-        ETH = ETH.add(msg.value);
+        ETH = ETH.add(_amount);
         emit ActivePoolETHBalanceUpdated(ETH);
     }
 }

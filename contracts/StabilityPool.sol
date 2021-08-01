@@ -2,7 +2,6 @@
 
 pragma solidity 0.6.11;
 
-import './Interfaces/IBorrowerOperations.sol';
 import './Interfaces/IStabilityPool.sol';
 import './Interfaces/IBorrowerOperations.sol';
 import './Interfaces/ITroveManager.sol';
@@ -156,6 +155,8 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
 
     ILUSDToken public lusdToken;
 
+    IERC20 public collateralToken;
+
     // Needed to check if there are pending liquidations
     ISortedTroves public sortedTroves;
 
@@ -297,6 +298,7 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         sortedTroves = ISortedTroves(_sortedTrovesAddress);
         priceFeed = IPriceFeed(_priceFeedAddress);
         communityIssuance = ICommunityIssuance(_communityIssuanceAddress);
+        collateralToken = IBorrowerOperations(_borrowerOperationsAddress).collateralToken();
 
         emit BorrowerOperationsAddressChanged(_borrowerOperationsAddress);
         emit TroveManagerAddressChanged(_troveManagerAddress);
@@ -631,7 +633,7 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         // Burn the debt that was successfully offset
         lusdToken.burn(address(this), _debtToOffset);
 
-        activePoolCached.sendETH(address(this), _collToAdd);
+        activePoolCached.sendCollateral(address(this), _collToAdd, false);
     }
 
     function _decreaseLUSD(uint _amount) internal {
@@ -836,8 +838,7 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         emit StabilityPoolETHBalanceUpdated(newETH);
         emit EtherSent(msg.sender, _amount);
 
-        (bool success, ) = msg.sender.call{ value: _amount }("");
-        require(success, "StabilityPool: sending ETH failed");
+        require(collateralToken.transfer(msg.sender, _amount), "StabilityPool: sending ETH failed");
     }
 
     // Send LUSD to user and decrease LUSD in Pool
@@ -990,9 +991,9 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
 
     // --- Fallback function ---
 
-    receive() external payable {
+    function notifyReceiveCollateral(uint _amount) external {
         _requireCallerIsActivePool();
-        ETH = ETH.add(msg.value);
+        ETH = ETH.add(_amount);
         StabilityPoolETHBalanceUpdated(ETH);
     }
 }

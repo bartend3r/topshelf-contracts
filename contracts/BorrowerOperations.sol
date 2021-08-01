@@ -205,7 +205,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         emit TroveCreated(msg.sender, vars.arrayIndex);
 
         // Move the ether to the Active Pool, and mint the LUSDAmount to the borrower
-        collateralToken.transferFrom(msg.sender, address(contractsCache.activePool), _collateralAmount);
+        _activePoolAddColl(contractsCache.activePool, _collateralAmount);
         _withdrawLUSD(contractsCache.activePool, contractsCache.lusdToken, msg.sender, _LUSDAmount, vars.netDebt);
         // Move the LUSD gas compensation to the Gas Pool
         _withdrawLUSD(contractsCache.activePool, contractsCache.lusdToken, gasPoolAddress, LUSD_GAS_COMPENSATION, LUSD_GAS_COMPENSATION);
@@ -352,7 +352,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         _repayLUSD(activePoolCached, lusdTokenCached, gasPoolAddress, LUSD_GAS_COMPENSATION);
 
         // Send the collateral back to the user
-        activePoolCached.sendETH(msg.sender, coll);
+        activePoolCached.sendCollateral(msg.sender, coll, false);
     }
 
     /**
@@ -441,10 +441,16 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         }
 
         if (_isCollIncrease) {
-            collateralToken.transferFrom(msg.sender, address(_activePool), _collChange);
+            _activePoolAddColl(_activePool, _collChange);
         } else {
-            _activePool.sendETH(_borrower, _collChange);
+            _activePool.sendCollateral(_borrower, _collChange, false);
         }
+    }
+
+    // Send ETH to Active Pool and increase its recorded ETH balance
+    function _activePoolAddColl(IActivePool _activePool, uint _amount) internal {
+        require(collateralToken.transferFrom(msg.sender, address(_activePool), _amount), "BorrowerOps: Sending ETH to ActivePool failed");
+        _activePool.notifyReceiveCollateral(_amount);
     }
 
     // Issue the specified amount of LUSD to _account and increases the total active debt (_netDebtIncrease potentially includes a LUSDFee)

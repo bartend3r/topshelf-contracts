@@ -373,7 +373,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         if (_ICR <= _100pct) {
             _movePendingTroveRewardsToActivePool(_activePool, _defaultPool, vars.pendingDebtReward, vars.pendingCollReward);
             _removeStake(_borrower);
-           
+
             singleLiquidation.debtToOffset = 0;
             singleLiquidation.collToSendToSP = 0;
             singleLiquidation.debtToRedistribute = singleLiquidation.entireTroveDebt;
@@ -382,7 +382,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
             _closeTrove(_borrower, Status.closedByLiquidation);
             emit TroveLiquidated(_borrower, singleLiquidation.entireTroveDebt, singleLiquidation.entireTroveColl, TroveManagerOperation.liquidateInRecoveryMode);
             emit TroveUpdated(_borrower, 0, 0, 0, TroveManagerOperation.liquidateInRecoveryMode);
-            
+
         // If 100% < ICR < MCR, offset as much as possible, and redistribute the remainder
         } else if ((_ICR > _100pct) && (_ICR < MCR)) {
              _movePendingTroveRewardsToActivePool(_activePool, _defaultPool, vars.pendingDebtReward, vars.pendingCollReward);
@@ -525,7 +525,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         stabilityPoolCached.offset(totals.totalDebtToOffset, totals.totalCollToSendToSP);
         _redistributeDebtAndColl(contractsCache.activePool, contractsCache.defaultPool, totals.totalDebtToRedistribute, totals.totalCollToRedistribute);
         if (totals.totalCollSurplus > 0) {
-            contractsCache.activePool.sendETH(address(collSurplusPool), totals.totalCollSurplus);
+            contractsCache.activePool.sendCollateral(address(collSurplusPool), totals.totalCollSurplus, true);
         }
 
         // Update system snapshots
@@ -664,7 +664,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         stabilityPoolCached.offset(totals.totalDebtToOffset, totals.totalCollToSendToSP);
         _redistributeDebtAndColl(activePoolCached, defaultPoolCached, totals.totalDebtToRedistribute, totals.totalCollToRedistribute);
         if (totals.totalCollSurplus > 0) {
-            activePoolCached.sendETH(address(collSurplusPool), totals.totalCollSurplus);
+            activePoolCached.sendCollateral(address(collSurplusPool), totals.totalCollSurplus, true);
         }
 
         // Update system snapshots
@@ -793,7 +793,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         }
 
         if (_ETH > 0) {
-            _activePool.sendETH(_liquidator, _ETH);
+            _activePool.sendCollateral(_liquidator, _ETH, false);
         }
     }
 
@@ -840,7 +840,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
 
             /*
             * If the provided hint is out of date, we bail since trying to reinsert without a good hint will almost
-            * certainly result in running out of gas. 
+            * certainly result in running out of gas.
             *
             * If the resultant net debt of the partial is less than the minimum, net debt we bail.
             */
@@ -880,7 +880,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
 
         // send ETH from Active Pool to CollSurplus Pool
         _contractsCache.collSurplusPool.accountSurplus(_borrower, _ETH);
-        _contractsCache.activePool.sendETH(address(_contractsCache.collSurplusPool), _ETH);
+        _contractsCache.activePool.sendCollateral(address(_contractsCache.collSurplusPool), _ETH, true);
     }
 
     function _isValidFirstRedemptionHint(ISortedTroves _sortedTroves, address _firstRedemptionHint, uint _price) internal view returns (bool) {
@@ -1002,7 +1002,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         _requireUserAcceptsFee(totals.ETHFee, totals.totalETHDrawn, _maxFeePercentage);
 
         // Send the ETH fee to the LQTY staking contract
-        contractsCache.activePool.sendETH(address(contractsCache.lqtyStaking), totals.ETHFee);
+        contractsCache.activePool.sendCollateral(address(contractsCache.lqtyStaking), totals.ETHFee, false);
         contractsCache.lqtyStaking.increaseF_ETH(totals.ETHFee);
 
         totals.ETHToSendToRedeemer = totals.totalETHDrawn.sub(totals.ETHFee);
@@ -1013,7 +1013,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         contractsCache.lusdToken.burn(msg.sender, totals.totalLUSDToRedeem);
         // Update Active Pool LUSD, and send ETH to account
         contractsCache.activePool.decreaseLUSDDebt(totals.totalLUSDToRedeem);
-        contractsCache.activePool.sendETH(msg.sender, totals.ETHToSendToRedeemer);
+        contractsCache.activePool.sendCollateral(msg.sender, totals.ETHToSendToRedeemer, false);
     }
 
     // --- Helper functions ---
@@ -1102,7 +1102,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
 
         return pendingETHReward;
     }
-    
+
     // Get the borrower's pending accumulated LUSD reward, earned by their stake
     function getPendingLUSDDebtReward(address _borrower) public view override returns (uint) {
         uint snapshotLUSDDebt = rewardSnapshots[_borrower].LUSDDebt;
@@ -1124,7 +1124,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         * pending rewards
         */
         if (Troves[_borrower].status != Status.active) {return false;}
-       
+
         return (rewardSnapshots[_borrower].ETH < L_ETH);
     }
 
@@ -1227,7 +1227,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         // Transfer coll and debt from ActivePool to DefaultPool
         _activePool.decreaseLUSDDebt(_debt);
         _defaultPool.increaseLUSDDebt(_debt);
-        _activePool.sendETH(address(_defaultPool), _coll);
+        _activePool.sendCollateral(address(_defaultPool), _coll, true);
     }
 
     function closeTrove(address _borrower) external override {
@@ -1364,7 +1364,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         // Update the baseRate state variable
         baseRate = newBaseRate;
         emit BaseRateUpdated(newBaseRate);
-        
+
         _updateLastFeeOpTime();
 
         return newBaseRate;
