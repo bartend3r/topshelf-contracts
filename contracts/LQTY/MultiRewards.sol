@@ -383,16 +383,16 @@ contract MultiRewards is ReentrancyGuard, Pausable {
     /* ========== STATE VARIABLES ========== */
 
     struct Reward {
-        address rewardsDistributor;
-        uint256 rewardsDuration;
         uint256 periodFinish;
         uint256 rewardRate;
         uint256 lastUpdateTime;
         uint256 rewardPerTokenStored;
+        mapping(address => bool) rewardsDistributor;
     }
     IERC20 public stakingToken;
     mapping(address => Reward) public rewardData;
     address[] public rewardTokens;
+    uint256 public constant rewardsDuration = 86400 * 7;
 
     // user -> reward token -> amount
     mapping(address => mapping(address => uint256)) public userRewardPerTokenPaid;
@@ -412,16 +412,18 @@ contract MultiRewards is ReentrancyGuard, Pausable {
 
     function addReward(
         address _rewardsToken,
-        address _rewardsDistributor,
-        uint256 _rewardsDuration
+        address[] calldata _rewardsDistributor
     )
-        public
+        external
         onlyOwner
     {
-        require(rewardData[_rewardsToken].rewardsDuration == 0);
+        for (uint i = 0; i < rewardTokens.length; i++) {
+            require(rewardTokens[i] != _rewardsToken);
+        }
         rewardTokens.push(_rewardsToken);
-        rewardData[_rewardsToken].rewardsDistributor = _rewardsDistributor;
-        rewardData[_rewardsToken].rewardsDuration = _rewardsDuration;
+        for (uint i = 0; i < _rewardsDistributor.length; i++) {
+            rewardData[_rewardsToken].rewardsDistributor[_rewardsDistributor[i]] = true;
+        }
     }
 
     /* ========== VIEWS ========== */
@@ -453,13 +455,13 @@ contract MultiRewards is ReentrancyGuard, Pausable {
     }
 
     function getRewardForDuration(address _rewardsToken) external view returns (uint256) {
-        return rewardData[_rewardsToken].rewardRate.mul(rewardData[_rewardsToken].rewardsDuration);
+        return rewardData[_rewardsToken].rewardRate.mul(rewardsDuration);
     }
 
     /* ========== MUTATIVE FUNCTIONS ========== */
 
-    function setRewardsDistributor(address _rewardsToken, address _rewardsDistributor) external onlyOwner {
-        rewardData[_rewardsToken].rewardsDistributor = _rewardsDistributor;
+    function setRewardsDistributor(address _rewardsToken, address _rewardsDistributor, bool _isDistributor) external onlyOwner {
+        rewardData[_rewardsToken].rewardsDistributor[_rewardsDistributor] = _isDistributor;
     }
 
     function stake(uint256 amount) external nonReentrant notPaused updateReward(msg.sender) {
@@ -479,7 +481,6 @@ contract MultiRewards is ReentrancyGuard, Pausable {
     }
 
     function getReward() public nonReentrant updateReward(msg.sender) {
-
         for (uint i; i < rewardTokens.length; i++) {
             address _rewardsToken = rewardTokens[i];
             uint256 reward = rewards[msg.sender][_rewardsToken];
@@ -488,7 +489,7 @@ contract MultiRewards is ReentrancyGuard, Pausable {
                 IERC20(_rewardsToken).safeTransfer(msg.sender, reward);
                 emit RewardPaid(msg.sender, _rewardsToken, reward);
             }
-    }
+        }
     }
 
     function exit() external {
@@ -499,18 +500,18 @@ contract MultiRewards is ReentrancyGuard, Pausable {
     /* ========== RESTRICTED FUNCTIONS ========== */
 
     function notifyRewardAmount(address _rewardsToken, uint256 reward) external updateReward(address(0)) {
-        require(rewardData[_rewardsToken].rewardsDistributor == msg.sender);
+        require(rewardData[_rewardsToken].rewardsDistributor[msg.sender]);
 
         if (block.timestamp >= rewardData[_rewardsToken].periodFinish) {
-            rewardData[_rewardsToken].rewardRate = reward.div(rewardData[_rewardsToken].rewardsDuration);
+            rewardData[_rewardsToken].rewardRate = reward.div(rewardsDuration);
         } else {
             uint256 remaining = rewardData[_rewardsToken].periodFinish.sub(block.timestamp);
             uint256 leftover = remaining.mul(rewardData[_rewardsToken].rewardRate);
-            rewardData[_rewardsToken].rewardRate = reward.add(leftover).div(rewardData[_rewardsToken].rewardsDuration);
+            rewardData[_rewardsToken].rewardRate = reward.add(leftover).div(rewardsDuration);
         }
 
         rewardData[_rewardsToken].lastUpdateTime = block.timestamp;
-        rewardData[_rewardsToken].periodFinish = block.timestamp.add(rewardData[_rewardsToken].rewardsDuration);
+        rewardData[_rewardsToken].periodFinish = block.timestamp.add(rewardsDuration);
         emit RewardAdded(reward);
     }
 
@@ -520,17 +521,6 @@ contract MultiRewards is ReentrancyGuard, Pausable {
         require(rewardData[tokenAddress].lastUpdateTime == 0, "Cannot withdraw reward token");
         IERC20(tokenAddress).safeTransfer(owner, tokenAmount);
         emit Recovered(tokenAddress, tokenAmount);
-    }
-
-    function setRewardsDuration(address _rewardsToken, uint256 _rewardsDuration) external {
-        require(
-            block.timestamp > rewardData[_rewardsToken].periodFinish,
-            "Reward period still active"
-        );
-        require(rewardData[_rewardsToken].rewardsDistributor == msg.sender);
-        require(_rewardsDuration > 0, "Reward duration must be non-zero");
-        rewardData[_rewardsToken].rewardsDuration = _rewardsDuration;
-        emit RewardsDurationUpdated(_rewardsToken, rewardData[_rewardsToken].rewardsDuration);
     }
 
     /* ========== MODIFIERS ========== */
