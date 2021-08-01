@@ -403,11 +403,11 @@ contract MultiRewards is ReentrancyGuard, Pausable {
 
     /* ========== CONSTRUCTOR ========== */
 
-    constructor(
-        address _owner,
-        address _stakingToken
-    ) public Owned(_owner) {
-        stakingToken = IERC20(_stakingToken);
+    constructor() public Owned(msg.sender) {}
+
+    function setStakingToken(IERC20 _stakingToken) external onlyOwner {
+        require(address(stakingToken) == address(0));
+        stakingToken = _stakingToken;
     }
 
     function addReward(
