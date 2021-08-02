@@ -255,7 +255,8 @@ contract('LQTY Token', async accounts => {
     await assertRevert(lqtyTokenTester.transfer(lqtyTokenTester.address, 1, { from: A }))
     await assertRevert(lqtyTokenTester.transfer(ZERO_ADDRESS, 1, { from: A }))
     await assertRevert(lqtyTokenTester.transfer(communityIssuance.address, 1, { from: A }))
-    await assertRevert(lqtyTokenTester.transfer(lqtyStaking.address, 1, { from: A }))
+    // tranfers to staking contract with transfer are allowed.
+    // await assertRevert(lqtyTokenTester.transfer(lqtyStaking.address, 1, { from: A }))
   })
 
   it('transfer(): transfer to or from the zero-address reverts', async () => {
