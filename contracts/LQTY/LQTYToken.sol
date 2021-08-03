@@ -319,9 +319,9 @@ contract LQTYToken is CheckContract, ILQTYToken {
             "LQTY: Cannot transfer tokens directly to the LQTY token contract or the zero address"
         );
         require(
-            _recipient != communityIssuanceAddress &&
-            _recipient != lqtyStakingAddress,
-            "LQTY: Cannot transfer tokens directly to the community issuance or staking contract"
+            _recipient != communityIssuanceAddress,
+            // _recipient != lqtyStakingAddress, 
+            "LQTY: Cannot transfer tokens directly to the community issuance contract"
         );
     }
 
