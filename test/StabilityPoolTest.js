@@ -249,8 +249,6 @@ contract('StabilityPool', async accounts => {
 
       // Alice makes deposit #2
       const alice_topUp_1 = toBN(dec(100, 18))
-      const howMuch = await contracts.collateral.balanceOf(stabilityPool.address)
-      // console.log('howMuch', howMuch.toString());
       try {
         await stabilityPool.provideToSP(alice_topUp_1, frontEnd_1, { from: alice })
 
