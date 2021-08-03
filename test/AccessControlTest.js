@@ -1,3 +1,4 @@
+// @TODO: commented out tests
 const deploymentHelper = require("../utils/deploymentHelpers.js")
 const testHelpers = require("../utils/testHelpers.js")
 const TroveManagerTester = artifacts.require("TroveManagerTester")
@@ -66,9 +67,12 @@ contract('Access Control: Liquity functions with the caller restricted to Liquit
 
 
     for (account of accounts.slice(0, 10)) {
+      let colBal = await coreContracts.collateral.balanceOf(account)
+      // console.log('colBal', colBal.toString())
       await coreContracts.collateral.faucet(account, collateralAmount)
+      colBal = await coreContracts.collateral.balanceOf(account)
       await coreContracts.collateral.approve(borrowerOperations.address, collateralAmount, { from: account } )
-      // this was in the original setup
+      // console.log('colBal', colBal.toString())
       await th.openTrove(coreContracts, { extraLUSDAmount: toBN(dec(20000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: account } })
     }
 
@@ -232,9 +236,11 @@ contract('Access Control: Liquity functions with the caller restricted to Liquit
     it("sendETH(): reverts when called by an account that is not BO nor TroveM nor SP", async () => {
       // Attempt call from alice
       try {
+        // sendCollateral(address _account, uint _amount, bool _notify)
         const txAlice = await activePool.sendCollateral(alice, 100, false, { from: alice })
         
       } catch (err) {
+        // console.log('err', err);
         assert.include(err.message, "revert")
         assert.include(err.message, "Caller is neither BorrowerOperations nor TroveManager nor StabilityPool")
       }
@@ -271,6 +277,7 @@ contract('Access Control: Liquity functions with the caller restricted to Liquit
         const txAlice = await web3.eth.sendTransaction({ from: alice, to: activePool.address, value: 100 })
         
       } catch (err) {
+        // console.log('err', err)
         assert.include(err.message, "revert")
         assert.include(err.message, "ActivePool: Caller is neither BO nor Default Pool")
       }
@@ -475,14 +482,14 @@ contract('Access Control: Liquity functions with the caller restricted to Liquit
     })
   })
 
-  describe('LQTYStaking', async accounts => {
+  describe('LQTYStaking3', async accounts => {
     it("increaseF_LUSD(): reverts when caller is not TroveManager", async () => {
       try {
         // const txAlice = await lqtyStaking.increaseF_LUSD(dec(1, 18), { from: alice })
         const txAlice = await lqtyStaking.notifyRewardAmount(lusdToken.address, dec(1, 18), { from: alice });
         
       } catch (err) {
-        assert.include(err.message, "revert")
+        assert.include(err.message, "Invalid caller")
       }
     })
   })

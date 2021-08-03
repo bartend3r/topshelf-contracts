@@ -25,7 +25,8 @@ contract('HintHelpers', async accounts => {
   let contracts
 
   let numAccounts;
-
+  let collateralAmount = dec(400000, 'ether');
+  let approvalAmount = dec(400000, 'ether');
   const getNetBorrowingAmount = async (debtWithFee) => th.getNetBorrowingAmount(contracts, debtWithFee)
 
   /* Open a Trove for each account. LUSD debt is 200 LUSD each, with collateral beginning at
@@ -90,7 +91,11 @@ contract('HintHelpers', async accounts => {
     await deploymentHelper.connectCoreContracts(contracts, LQTYContracts)
     await deploymentHelper.connectLQTYContracts(LQTYContracts)
     await deploymentHelper.connectLQTYContractsToCore(LQTYContracts, contracts)
-
+    for (account of accounts.slice(0, 10)) {
+      let colBal = await contracts.collateral.balanceOf(account)
+      await contracts.collateral.faucet(account, collateralAmount)
+      await contracts.collateral.approve(borrowerOperations.address, collateralAmount, { from: account } )
+    } 
     numAccounts = 10
 
     await priceFeed.setPrice(dec(100, 18))
