@@ -48,6 +48,8 @@ contract('SortedTroves', async accounts => {
   let troveManager
   let borrowerOperations
   let lusdToken
+  let collateralAmount = dec(400000, 'ether');
+  let approvalAmount = dec(400000, 'ether');
 
   const [bountyAddress, lpRewardsAddress, multisig] = accounts.slice(997, 1000)
 
@@ -76,6 +78,10 @@ contract('SortedTroves', async accounts => {
       await deploymentHelper.connectLQTYContracts(LQTYContracts)
       await deploymentHelper.connectCoreContracts(contracts, LQTYContracts)
       await deploymentHelper.connectLQTYContractsToCore(LQTYContracts, contracts)
+      for (account of accounts.slice(0, 25)) {
+        await contracts.collateral.faucet(account, collateralAmount)
+        await contracts.collateral.approve(borrowerOperations.address, collateralAmount, { from: account } )
+      }  
     })
 
     it('contains(): returns true for addresses that have opened troves', async () => {

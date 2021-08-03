@@ -23,7 +23,9 @@ contract('CollSurplusPool', async accounts => {
   let collSurplusPool
 
   let contracts
-
+  let activePool
+  let collateralAmount = dec(40000, 18);
+  let approvalAmount = dec(4000000, 18);
   const getOpenTroveLUSDAmount = async (totalDebt) => th.getOpenTroveLUSDAmount(contracts, totalDebt)
   const openTrove = async (params) => th.openTrove(contracts, params)
 
@@ -40,10 +42,17 @@ contract('CollSurplusPool', async accounts => {
     priceFeed = contracts.priceFeedTestnet
     collSurplusPool = contracts.collSurplusPool
     borrowerOperations = contracts.borrowerOperations
+    activePool = contracts.activePool
+
 
     await deploymentHelper.connectCoreContracts(contracts, LQTYContracts)
     await deploymentHelper.connectLQTYContracts(LQTYContracts)
     await deploymentHelper.connectLQTYContractsToCore(LQTYContracts, contracts)
+    for (account of accounts.slice(0, 6)) {
+      await contracts.collateral.faucet(account, collateralAmount)
+      await contracts.collateral.approve(borrowerOperations.address, approvalAmount, { from: account } )
+      await contracts.collateral.approve(activePool.address, approvalAmount, { from: account } )
+    }    
   })
 
   it("CollSurplusPool::getETH(): Returns the ETH balance of the CollSurplusPool after redemption", async () => {
@@ -54,7 +63,7 @@ contract('CollSurplusPool', async accounts => {
     await priceFeed.setPrice(price)
 
     const { collateral: B_coll, netDebt: B_netDebt } = await openTrove({ ICR: toBN(dec(200, 16)), extraParams: { from: B } })
-    await openTrove({ extraLUSDAmount: B_netDebt, extraParams: { from: A, value: dec(3000, 'ether') } })
+    await openTrove({collatAmount: dec(3000, 'ether'), extraLUSDAmount: B_netDebt, extraParams: { from: A } })
 
     // skip bootstrapping phase
     await th.fastForwardTime(timeValues.SECONDS_IN_ONE_WEEK * 2, web3.currentProvider)
@@ -73,7 +82,8 @@ contract('CollSurplusPool', async accounts => {
   it("CollSurplusPool: claimColl(): Reverts if nothing to claim", async () => {
     await th.assertRevert(borrowerOperations.claimCollateral({ from: A }), 'CollSurplusPool: No collateral available to claim')
   })
-
+  // @TODO: review
+  // Is this a problem now? We won't have non-payable with ERC-20s
   it("CollSurplusPool: claimColl(): Reverts if owner cannot receive ETH surplus", async () => {
     const nonPayable = await NonPayable.new()
 
@@ -86,7 +96,7 @@ contract('CollSurplusPool', async accounts => {
     const B_netDebt = await th.getAmountWithBorrowingFee(contracts, B_lusdAmount)
     const openTroveData = th.getTransactionData('openTrove(uint256,uint256,address,address)', ['0xde0b6b3a7640000', web3.utils.toHex(B_lusdAmount), B, B])
     await nonPayable.forward(borrowerOperations.address, openTroveData, { value: B_coll })
-    await openTrove({ extraLUSDAmount: B_netDebt, extraParams: { from: A, value: dec(3000, 'ether') } })
+    await openTrove({ collatAmount: dec(3000, 'ether'), extraLUSDAmount: B_netDebt, extraParams: { from: A } })
 
     // skip bootstrapping phase
     await th.fastForwardTime(timeValues.SECONDS_IN_ONE_WEEK * 2, web3.currentProvider)
