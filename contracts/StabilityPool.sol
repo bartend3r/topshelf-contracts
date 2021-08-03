@@ -458,7 +458,7 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         ETH = ETH.sub(depositorETHGain);
         emit StabilityPoolETHBalanceUpdated(ETH);
         emit EtherSent(msg.sender, depositorETHGain);
-
+        collateralToken.approve(address(borrowerOperations), depositorETHGain);
         borrowerOperations.moveETHGainToTrove(depositorETHGain, msg.sender, _upperHint, _lowerHint);
     }
 
@@ -525,7 +525,7 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
             uint LUSDLossPerUnitStaked) = _computeRewardsPerUnitStaked(_collToAdd, _debtToOffset, totalLUSD);
 
         _updateRewardSumAndProduct(ETHGainPerUnitStaked, LUSDLossPerUnitStaked);  // updates S and P
-
+        collateralToken.approve(address(borrowerOperations), _collToAdd);
         _moveOffsetCollAndDebt(_collToAdd, _debtToOffset);
     }
 
