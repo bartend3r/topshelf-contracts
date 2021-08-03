@@ -3,7 +3,7 @@ const deploymentHelper = require("../utils/deploymentHelpers.js")
 const { BNConverter } = require("../utils/BNConverter.js")
 const testHelpers = require("../utils/testHelpers.js")
 
-const LQTYStakingTester = artifacts.require('LQTYStakingTester')
+// const LQTYStakingTester = artifacts.require('LQTYStakingTester')
 const TroveManagerTester = artifacts.require("TroveManagerTester")
 const NonPayable = artifacts.require("./NonPayable.sol")
 
@@ -718,8 +718,9 @@ contract('LQTYStaking revenue share tests', async accounts => {
     await assertRevert(unstakeTxPromise2)
   })
 
-  it('Test requireCallerIsTroveManager', async () => {
-    const lqtyStakingTester = await LQTYStakingTester.new()
-    await assertRevert(lqtyStakingTester.requireCallerIsTroveManager(), 'LQTYStaking: caller is not TroveM')
-  })
+  // lqtyStakingTester has been removed
+  // it('Test requireCallerIsTroveManager', async () => {
+  //   const lqtyStakingTester = await LQTYStakingTester.new()
+  //   await assertRevert(lqtyStakingTester.requireCallerIsTroveManager(), 'LQTYStaking: caller is not TroveM')
+  // })
 })
