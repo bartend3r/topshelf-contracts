@@ -18,6 +18,7 @@
 /secrets.js
 
 .vscode
+.ds_store
 
 yarn-error.log
 
