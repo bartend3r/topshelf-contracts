@@ -500,7 +500,7 @@ contract MultiRewards is ReentrancyGuard, Pausable {
     /* ========== RESTRICTED FUNCTIONS ========== */
 
     function notifyRewardAmount(address _rewardsToken, uint256 reward) external updateReward(address(0)) {
-        require(rewardData[_rewardsToken].rewardsDistributor[msg.sender]);
+        require(rewardData[_rewardsToken].rewardsDistributor[msg.sender], "Invalid caller");
 
         if (block.timestamp >= rewardData[_rewardsToken].periodFinish) {
             rewardData[_rewardsToken].rewardRate = reward.div(rewardsDuration);
