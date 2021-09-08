@@ -282,6 +282,19 @@ contract('Access Control: Liquity functions with the caller restricted to Liquit
         assert.include(err.message, "ActivePool: Caller is neither BO nor Default Pool")
       }
     })
+
+    // our replacement for fallback (payment)	
+    it("notifyReceiveCollateral(): reverts when called by an account that is not Borrower Operations nor Default Pool", async () => {
+      // Attempt call from alice
+      try {
+        const txAlice = await activePool.notifyReceiveCollateral(100, { from: alice, to: activePool.address });
+        
+      } catch (err) {
+        // console.log('err', err)
+        assert.include(err.message, "revert")
+        assert.include(err.message, "ActivePool: Caller is neither BO nor Default Pool")
+      }
+    })
   })
 
   describe('DefaultPool', async accounts => {
@@ -332,6 +345,18 @@ contract('Access Control: Liquity functions with the caller restricted to Liquit
         assert.include(err.message, "DefaultPool: Caller is not the ActivePool")
       }
     })
+
+    // our replacement for fallback (payment)	
+    it("notifyReceiveCollateral(): reverts when called by an account that is not the Active Pool", async () => {
+      // Attempt call from alice
+      try {
+        const txAlice = await defaultPool.notifyReceiveCollateral(100, { from: alice, to: activePool.address });
+        
+      } catch (err) {
+        assert.include(err.message, "revert")
+        assert.include(err.message, "DefaultPool: Caller is not the ActivePool")
+      }
+    })    
   })
 
   describe('StabilityPool', async accounts => {
@@ -362,6 +387,18 @@ contract('Access Control: Liquity functions with the caller restricted to Liquit
         assert.include(err.message, "StabilityPool: Caller is not ActivePool")
       }
     })
+
+    // our replacement for fallback (payment)	
+    it("notifyReceiveCollateral(): reverts when called by an account that is not the Active Pool", async () => {
+      // Attempt call from alice
+      try {
+        const txAlice = await stabilityPool.notifyReceiveCollateral(100, { from: alice, to: activePool.address });
+        
+      } catch (err) {
+        assert.include(err.message, "revert")
+        assert.include(err.message, "StabilityPool: Caller is not ActivePool")
+      }
+    })       
   })
 
   describe('LUSDToken', async accounts => {
