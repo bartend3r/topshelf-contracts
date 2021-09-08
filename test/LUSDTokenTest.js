@@ -403,9 +403,10 @@ contract('LUSDToken', async accounts => {
     testCorpus({ withProxy: false })
   })
 
-  describe('Basic token functions, with Proxy', async () => {
-    testCorpus({ withProxy: true })
-  })
+  // we will not be using a proxy
+  // describe('Basic token functions, with Proxy', async () => {
+  //   testCorpus({ withProxy: true })
+  // })
 })
 
 
