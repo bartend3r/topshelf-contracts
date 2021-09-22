@@ -65,6 +65,7 @@ contract('Access Control: Liquity functions with the caller restricted to Liquit
     await deploymentHelper.connectCoreContracts(coreContracts, LQTYContracts)
     await deploymentHelper.connectLQTYContractsToCore(LQTYContracts, coreContracts)
 
+    const balance = await ethers.provider.getBalance(stabilityPool.address);
 
     for (account of accounts.slice(0, 10)) {
       let colBal = await coreContracts.collateral.balanceOf(account)
@@ -270,18 +271,19 @@ contract('Access Control: Liquity functions with the caller restricted to Liquit
       }
     })
 
-    // fallback (payment)	
-    it("fallback(): reverts when called by an account that is not Borrower Operations nor Default Pool", async () => {
-      // Attempt call from alice
-      try {
-        const txAlice = await web3.eth.sendTransaction({ from: alice, to: activePool.address, value: 100 })
+    // removing as this is not an issue for us
+    // // fallback (payment)	
+    // it("fallback(): reverts when called by an account that is not Borrower Operations nor Default Pool", async () => {
+    //   // Attempt call from alice
+    //   try {
+    //     const txAlice = await web3.eth.sendTransaction({ from: alice, to: activePool.address, value: 100 })
         
-      } catch (err) {
-        // console.log('err', err)
-        assert.include(err.message, "revert")
-        assert.include(err.message, "ActivePool: Caller is neither BO nor Default Pool")
-      }
-    })
+    //   } catch (err) {
+    //     // console.log('err', err)
+    //     assert.include(err.message, "revert")
+    //     assert.include(err.message, "ActivePool: Caller is neither BO nor Default Pool")
+    //   }
+    // })
 
     // our replacement for fallback (payment)	
     it("notifyReceiveCollateral(): reverts when called by an account that is not Borrower Operations nor Default Pool", async () => {
@@ -295,7 +297,10 @@ contract('Access Control: Liquity functions with the caller restricted to Liquit
         assert.include(err.message, "ActivePool: Caller is neither BO nor Default Pool")
       }
     })
+
   })
+
+
 
   describe('DefaultPool', async accounts => {
     // sendETHToActivePool
@@ -334,17 +339,18 @@ contract('Access Control: Liquity functions with the caller restricted to Liquit
       }
     })
 
-    // fallback (payment)	
-    it("fallback(): reverts when called by an account that is not the Active Pool", async () => {
-      // Attempt call from alice
-      try {
-        const txAlice = await web3.eth.sendTransaction({ from: alice, to: defaultPool.address, value: 100 })
+    // removing as this is not an issue for us
+    // // fallback (payment)	
+    // it("fallback(): reverts when called by an account that is not the Active Pool", async () => {
+    //   // Attempt call from alice
+    //   try {
+    //     const txAlice = await web3.eth.sendTransaction({ from: alice, to: defaultPool.address, value: 100 })
         
-      } catch (err) {
-        assert.include(err.message, "revert")
-        assert.include(err.message, "DefaultPool: Caller is not the ActivePool")
-      }
-    })
+    //   } catch (err) {
+    //     assert.include(err.message, "revert")
+    //     assert.include(err.message, "DefaultPool: Caller is not the ActivePool")
+    //   }
+    // })
 
     // our replacement for fallback (payment)	
     it("notifyReceiveCollateral(): reverts when called by an account that is not the Active Pool", async () => {
@@ -375,18 +381,18 @@ contract('Access Control: Liquity functions with the caller restricted to Liquit
     })
 
     // --- onlyActivePool ---
-
-    // fallback (payment)	
-    it("fallback(): reverts when called by an account that is not the Active Pool", async () => {
-      // Attempt call from alice
-      try {
-        const txAlice = await web3.eth.sendTransaction({ from: alice, to: stabilityPool.address, value: 100 })
+    // removing as this is not an issue for us
+    // // fallback (payment)	
+    // it("fallback(): reverts when called by an account that is not the Active Pool", async () => {
+    //   // Attempt call from alice
+    //   try {
+    //     const txAlice = await web3.eth.sendTransaction({ from: alice, to: stabilityPool.address, value: 100 })
         
-      } catch (err) {
-        assert.include(err.message, "revert")
-        assert.include(err.message, "StabilityPool: Caller is not ActivePool")
-      }
-    })
+    //   } catch (err) {
+    //     assert.include(err.message, "revert")
+    //     assert.include(err.message, "StabilityPool: Caller is not ActivePool")
+    //   }
+    // })
 
     // our replacement for fallback (payment)	
     it("notifyReceiveCollateral(): reverts when called by an account that is not the Active Pool", async () => {
@@ -398,7 +404,7 @@ contract('Access Control: Liquity functions with the caller restricted to Liquit
         assert.include(err.message, "revert")
         assert.include(err.message, "StabilityPool: Caller is not ActivePool")
       }
-    })       
+    })    
   })
 
   describe('LUSDToken', async accounts => {
