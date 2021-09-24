@@ -4328,28 +4328,28 @@ contract('BorrowerOperations', async accounts => {
       })
     })
 
-    // @TODO Not sure this is a problem with eee-arrr-ceees.
     if (!withProxy) {
-      it('closeTrove(): fails if owner cannot receive ETH', async () => {
-        const nonPayable = await NonPayable.new()
+      // removing as this is not an issue for us
+      // it('closeTrove(): fails if owner cannot receive ETH', async () => {
+      //   const nonPayable = await NonPayable.new()
 
-        // we need 2 troves to be able to close 1 and have 1 remaining in the system
-        await borrowerOperations.openTrove(th._100pct, dec(1000, 18), dec(100000, 18), alice, alice, { from: alice  })
+      //   // we need 2 troves to be able to close 1 and have 1 remaining in the system
+      //   await borrowerOperations.openTrove(th._100pct, dec(1000, 18), dec(100000, 18), alice, alice, { from: alice  })
 
-        // Alice sends LUSD to NonPayable so its LUSD balance covers its debt
-        await lusdToken.transfer(nonPayable.address, dec(10000, 18), {from: alice})
+      //   // Alice sends LUSD to NonPayable so its LUSD balance covers its debt
+      //   await lusdToken.transfer(nonPayable.address, dec(10000, 18), {from: alice})
 
-        // open trove from NonPayable proxy contract
-        const _100pctHex = '0xde0b6b3a7640000'
-        const _1e25Hex = '0xd3c21bcecceda1000000'
-        const openTroveData = th.getTransactionData('openTrove(uint256,uint256,address,address)', [_100pctHex, _1e25Hex, '0x0', '0x0'])
-        await nonPayable.forward(borrowerOperations.address, openTroveData, { value: dec(10000, 'ether') })
-        assert.equal((await troveManager.getTroveStatus(nonPayable.address)).toString(), '1', 'NonPayable proxy should have a trove')
-        assert.isFalse(await th.checkRecoveryMode(contracts), 'System should not be in Recovery Mode')
-        // open trove from NonPayable proxy contract
-        const closeTroveData = th.getTransactionData('closeTrove()', [])
-        await th.assertRevert(nonPayable.forward(borrowerOperations.address, closeTroveData), 'ActivePool: sending ETH failed')
-      })
+      //   // open trove from NonPayable proxy contract
+      //   const _100pctHex = '0xde0b6b3a7640000'
+      //   const _1e25Hex = '0xd3c21bcecceda1000000'
+      //   const openTroveData = th.getTransactionData('openTrove(uint256,uint256,address,address)', [_100pctHex, _1e25Hex, '0x0', '0x0'])
+      //   await nonPayable.forward(borrowerOperations.address, openTroveData, { value: dec(10000, 'ether') })
+      //   assert.equal((await troveManager.getTroveStatus(nonPayable.address)).toString(), '1', 'NonPayable proxy should have a trove')
+      //   assert.isFalse(await th.checkRecoveryMode(contracts), 'System should not be in Recovery Mode')
+      //   // open trove from NonPayable proxy contract
+      //   const closeTroveData = th.getTransactionData('closeTrove()', [])
+      //   await th.assertRevert(nonPayable.forward(borrowerOperations.address, closeTroveData), 'ActivePool: sending ETH failed')
+      // })
     }
   }
 
