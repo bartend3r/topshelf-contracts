@@ -111,7 +111,7 @@ contract('CollSurplusPool', async accounts => {
   // })
 
   it('CollSurplusPool: reverts trying to send ETH to it', async () => {
-    await th.assertRevert(web3.eth.sendTransaction({ from: A, to: collSurplusPool.address, value: 1 }), 'CollSurplusPool: Caller is not Active Pool')
+    await th.assertRevert(collSurplusPool.notifyReceiveCollateral(100, { from: A, to: collSurplusPool.address}), 'CollSurplusPool: Caller is not Active Pool')
   })
 
   it('CollSurplusPool: accountSurplus: reverts if caller is not Trove Manager', async () => {
