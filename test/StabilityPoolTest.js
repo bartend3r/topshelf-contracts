@@ -1022,10 +1022,10 @@ contract('StabilityPool', async accounts => {
       const D_ETHBalance_After = await contracts.collateral.balanceOf(D)
 
       // Check ETH balances have not changed
-      assert.equal(A_ETHBalance_After, A_ETHBalance_Before)
-      assert.equal(B_ETHBalance_After, B_ETHBalance_Before)
-      assert.equal(C_ETHBalance_After, C_ETHBalance_Before)
-      assert.equal(D_ETHBalance_After, D_ETHBalance_Before)
+      assert.equal(A_ETHBalance_After.toString(), A_ETHBalance_Before.toString())
+      assert.equal(B_ETHBalance_After.toString(), B_ETHBalance_Before.toString())
+      assert.equal(C_ETHBalance_After.toString(), C_ETHBalance_Before.toString())
+      assert.equal(D_ETHBalance_After.toString(), D_ETHBalance_Before.toString())
     })
 
     it("provideToSP(), new deposit after past full withdrawal: depositor does not receive ETH gains", async () => {
@@ -1090,10 +1090,10 @@ contract('StabilityPool', async accounts => {
       const D_ETHBalance_After = await contracts.collateral.balanceOf(D)
 
       // Check ETH balances have not changed
-      assert.equal(A_ETHBalance_After, A_ETHBalance_Before)
-      assert.equal(B_ETHBalance_After, B_ETHBalance_Before)
-      assert.equal(C_ETHBalance_After, C_ETHBalance_Before)
-      assert.equal(D_ETHBalance_After, D_ETHBalance_Before)
+      assert.equal(A_ETHBalance_After.toString(), A_ETHBalance_Before.toString())
+      assert.equal(B_ETHBalance_After.toString(), B_ETHBalance_Before.toString())
+      assert.equal(C_ETHBalance_After.toString(), C_ETHBalance_Before.toString())
+      assert.equal(D_ETHBalance_After.toString(), D_ETHBalance_Before.toString())
     })
 
     it("provideToSP(), topup: triggers LQTY reward event - increases the sum G", async () => {
