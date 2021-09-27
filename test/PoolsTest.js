@@ -132,7 +132,7 @@ contract('DefaultPool', async accounts => {
     await defaultPool.setAddresses(mockTroveManager.address, mockActivePool.address)
   })
 
-  it('getETH(): gets the recorded LUSD balance', async () => {
+  it('getETH(): gets the recorded ETH balance', async () => {
     const recordedETHBalance = await defaultPool.getETH()
     assert.equal(recordedETHBalance, 0)
   })
