@@ -166,12 +166,12 @@ contract('All Liquity functions with onlyOwner modifier', async accounts => {
       await th.assertRevert(communityIssuance.setAddresses(...params, { from: owner }))
     })
   })
-
-  describe('LQTYStaking', async accounts => {
-    it("setAddresses(): reverts when called by non-owner, with wrong addresses, or twice", async () => {
-      await testSetAddresses(lqtyStaking, 5)
-    })
-  })
+  // remove as multirewards replaces LQTYStaking and does not have setAddresses
+  // describe('LQTYStaking', async accounts => {
+  //   it("setAddresses(): reverts when called by non-owner, with wrong addresses, or twice", async () => {
+  //     await testSetAddresses(lqtyStaking, 5)
+  //   })
+  // })
 
   describe('LockupContractFactory', async accounts => {
     it("setLQTYAddress(): reverts when called by non-owner, with wrong address, or twice", async () => {
