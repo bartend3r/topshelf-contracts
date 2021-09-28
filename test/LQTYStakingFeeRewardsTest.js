@@ -95,29 +95,29 @@ contract('LQTYStaking revenue share tests', async accounts => {
     assert.equal(one, collateral.address)
   })
 
-  // it('stake(): reverts if amount is zero', async () => {
-  //   // FF time one year so owner can transfer LQTY
-  //   await th.fastForwardTime(timeValues.SECONDS_IN_ONE_YEAR, web3.currentProvider)
+  it('stake(): reverts if amount is zero', async () => {
+    // FF time one year so owner can transfer LQTY
+    await th.fastForwardTime(timeValues.SECONDS_IN_ONE_YEAR, web3.currentProvider)
 
-  //   // multisig transfers LQTY to staker A
-  //   await lqtyToken.transfer(A, dec(100, 18), {from: multisig})
+    // multisig transfers LQTY to staker A
+    await lqtyToken.transfer(A, dec(100, 18), {from: multisig})
 
-  //   // console.log(`A lqty bal: ${await lqtyToken.balanceOf(A)}`)
+    // console.log(`A lqty bal: ${await lqtyToken.balanceOf(A)}`)
 
-  //   // A makes stake
-  //   await lqtyToken.approve(lqtyStaking.address, dec(100, 18), {from: A})
-  //   await assertRevert(lqtyStaking.stake(0, {from: A}), "Cannot stake 0")
-  // })
+    // A makes stake
+    await lqtyToken.approve(lqtyStaking.address, dec(100, 18), {from: A})
+    await assertRevert(lqtyStaking.stake(0, {from: A}), "Cannot stake 0")
+  })
 
   // Check to ensure that collateral rewards in contract increase when a redemption occurs
   it("ETH fee per LQTY staked increases when a redemption fee is triggered and totalStakes > 0", async () => {
+    // FF time one year so owner can transfer LQTY
+    await th.fastForwardTime(timeValues.SECONDS_IN_ONE_YEAR, web3.currentProvider)
+
     await openTrove({ extraLUSDAmount: toBN(dec(10000, 18)), ICR: toBN(dec(10, 18)), extraParams: { from: whale } })
     await openTrove({ extraLUSDAmount: toBN(dec(20000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: A } })
     await openTrove({ extraLUSDAmount: toBN(dec(30000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: B } })
     await openTrove({ extraLUSDAmount: toBN(dec(40000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: C } })
-
-    // FF time one year so owner can transfer LQTY
-    await th.fastForwardTime(timeValues.SECONDS_IN_ONE_YEAR, web3.currentProvider)
 
     // multisig transfers LQTY to staker A
     await lqtyToken.transfer(A, dec(100, 18), {from: multisig})
@@ -170,14 +170,14 @@ contract('LQTYStaking revenue share tests', async accounts => {
   })
 
   it("ETH fee per LQTY staked increases when a redemption fee is triggered and totalStakes == 0", async () => {
+    // FF time one year so owner can transfer LQTY
+    await th.fastForwardTime(timeValues.SECONDS_IN_ONE_YEAR, web3.currentProvider)
+
     await openTrove({ extraLUSDAmount: toBN(dec(10000, 18)), ICR: toBN(dec(10, 18)), extraParams: { from: whale } })
     await openTrove({ extraLUSDAmount: toBN(dec(20000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: A } })
     await openTrove({ extraLUSDAmount: toBN(dec(30000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: B } })
     await openTrove({ extraLUSDAmount: toBN(dec(40000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: C } })
     await openTrove({ extraLUSDAmount: toBN(dec(50000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: D } })
-
-    // FF time one year so owner can transfer LQTY
-    await th.fastForwardTime(timeValues.SECONDS_IN_ONE_YEAR, web3.currentProvider)
 
     // multisig transfers LQTY to staker A
     await lqtyToken.transfer(A, dec(100, 18), {from: multisig})
@@ -219,11 +219,18 @@ contract('LQTYStaking revenue share tests', async accounts => {
   })
 
   it("LUSD fee per LQTY staked increases when a redemption fee is triggered and totalStakes > 0", async () => {
+    // Moved this up as it was interfering with MultiRewards lastUpdateTime etc. 
+    // and the decay made it difficult to compare after events
+    // FF time one year so owner can transfer LQTY
+    await th.fastForwardTime(timeValues.SECONDS_IN_ONE_YEAR, web3.currentProvider)
+
     // Staking contract has no LUSD at beginning
     const LUSD_Start = await lusdToken.balanceOf(lqtyStaking.address);
     assert.equal(LUSD_Start.toString(), '0')
+    const F_LUSD_Start = await lqtyStaking.rewardData(lusdToken.address)
+    assert.equal(F_LUSD_Start.rewardRate.toString(), '0')
 
-    // open trives  
+    // open troves  
     const tx1 = await openTrove({ extraLUSDAmount: toBN(dec(10000, 18)), ICR: toBN(dec(10, 18)), extraParams: { from: whale } })
     const tx2 = await openTrove({ extraLUSDAmount: toBN(dec(20000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: A } })
     const tx3 = await openTrove({ extraLUSDAmount: toBN(dec(30000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: B } })
@@ -233,8 +240,13 @@ contract('LQTYStaking revenue share tests', async accounts => {
     // calculate lusd fees sent to staking contract
     const Trove_Fees = tx1.tx.logs[2].args[1].add(tx2.tx.logs[2].args[1]).add(tx3.tx.logs[2].args[1]).add(tx4.tx.logs[2].args[1]).add(tx5.tx.logs[2].args[1]);
 
-    // FF time one year so owner can transfer LQTY
-    await th.fastForwardTime(timeValues.SECONDS_IN_ONE_YEAR, web3.currentProvider)
+    // (added a check on the actual balance of the contract)
+    const LUSD_Before = await lusdToken.balanceOf(lqtyStaking.address);
+    // Balance in contract equals fees passed from trove openings
+    assert.equal(LUSD_Before.toString(), Trove_Fees.toString())
+    // NEW: Check the lusd rewardData.rewardRate
+    // F_LUSD_Before.rewardRate should approximate (Trove_Fees/(7*24*60*60))
+    const F_LUSD_Before = await lqtyStaking.rewardData(lusdToken.address)
 
     // multisig transfers LQTY to staker A
     await lqtyToken.transfer(A, dec(100, 18), {from: multisig})
@@ -242,18 +254,6 @@ contract('LQTYStaking revenue share tests', async accounts => {
     // A makes stake
     await lqtyToken.approve(lqtyStaking.address, dec(100, 18), {from: A})
     await lqtyStaking.stake(dec(100, 18), {from: A})
-
-    // OLD: Check LUSD fee per unit staked is zero
-    // const F_LUSD_Before = await lqtyStaking.F_ETH()
-    // assert.equal(F_LUSD_Before, '0')
-
-    // NEW: Check the lusd rewardData.rewardRate
-    // (added a check on the actual balance of the contract)
-    const LUSD_Before = await lusdToken.balanceOf(lqtyStaking.address);
-    // Balance in contract equals fees passed from trove openings
-    assert.equal(LUSD_Before.toString(), Trove_Fees.toString())
-
-    const F_LUSD_Before = await lqtyStaking.rewardData(lusdToken.address)
 
     const B_BalBeforeREdemption = await lusdToken.balanceOf(B)
     // B redeems
@@ -268,31 +268,34 @@ contract('LQTYStaking revenue share tests', async accounts => {
 
     // D draws debt
     const tx = await borrowerOperations.withdrawLUSD(th._100pct, dec(27, 18), D, D, {from: D})
-    
+
     // Check LUSD fee value in event is non-zero
     const emittedLUSDFee = toBN(th.getLUSDFeeFromLUSDBorrowingEvent(tx))
     assert.isTrue(emittedLUSDFee.gt(toBN('0')))
     
-    // // Check LUSD fee per unit staked has increased by correct amount
+    // Check LUSD fee per unit staked has increased by correct amount
     // const F_LUSD_After = await lqtyStaking.F_LUSD()
     const F_LUSD_After = await lqtyStaking.rewardData(lusdToken.address)
     const LUSD_After = await lusdToken.balanceOf(lqtyStaking.address);
     assert.isTrue(LUSD_After.gt(LUSD_Before))
-
     // ensure the total = before (from troves) and the fee from the withdrawal (D draws debt)
     LUSD_total = LUSD_Before.add(emittedLUSDFee)
     assert.equal(LUSD_total.toString(), LUSD_After.toString())
 
-    // const expected_F_LUSD_After = (LUSD_total/(7*24*60*60)).toFixed(0);
-    // assert.equal(F_LUSD_After.rewardRate.toString(), expected_F_LUSD_After.toString())
+
+    assert.isTrue(F_LUSD_After.rewardRate.gt(F_LUSD_Before.rewardRate))
+    assert.isTrue(LUSD_After.gt(LUSD_Before))
+
   })
 
   it("LUSD fee per LQTY staked doesn't change when a redemption fee is triggered and totalStakes == 0", async () => {
+    // FF time one year so owner can transfer LQTY
+    await th.fastForwardTime(timeValues.SECONDS_IN_ONE_YEAR, web3.currentProvider)
     // Staking contract has no LUSD at beginning
     const LUSD_Start = await lusdToken.balanceOf(lqtyStaking.address);
     assert.equal(LUSD_Start.toString(), '0')
 
-    // open trives  
+    // open troves  
     const tx1 = await openTrove({ extraLUSDAmount: toBN(dec(10000, 18)), ICR: toBN(dec(10, 18)), extraParams: { from: whale } })
     const tx2 = await openTrove({ extraLUSDAmount: toBN(dec(20000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: A } })
     const tx3 = await openTrove({ extraLUSDAmount: toBN(dec(30000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: B } })
@@ -301,8 +304,6 @@ contract('LQTYStaking revenue share tests', async accounts => {
     
     // calculate lusd fees sent to staking contract
     const Trove_Fees = tx1.tx.logs[2].args[1].add(tx2.tx.logs[2].args[1]).add(tx3.tx.logs[2].args[1]).add(tx4.tx.logs[2].args[1]).add(tx5.tx.logs[2].args[1]);
-    // FF time one year so owner can transfer LQTY
-    await th.fastForwardTime(timeValues.SECONDS_IN_ONE_YEAR, web3.currentProvider)
 
     // multisig transfers LQTY to staker A
     await lqtyToken.transfer(A, dec(100, 18), {from: multisig})
