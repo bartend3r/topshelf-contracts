@@ -81,7 +81,7 @@ contract('LQTYStaking revenue share tests', async accounts => {
 
     // A makes stake
     await lqtyToken.approve(lqtyStaking.address, dec(100, 18), {from: A})
-    await assertRevert(lqtyStaking.stake(0, {from: A}), "LQTYStaking: Amount must be non-zero")
+    await assertRevert(lqtyStaking.stake(0, {from: A}), "Cannot stake 0")
   })
 
   it("ETH fee per LQTY staked increases when a redemption fee is triggered and totalStakes > 0", async () => {
