@@ -262,7 +262,7 @@ contract('Deployment script - Sets correct contract addresses dependencies after
   it('Sets the correct LQTYToken address in LQTYStaking', async () => {
     const lqtyTokenAddress = lqtyToken.address
 
-    const recordedLQTYTokenAddress = await lqtyStaking.lqtyToken()
+    const recordedLQTYTokenAddress = await lqtyStaking.stakingToken()
     assert.equal(lqtyTokenAddress, recordedLQTYTokenAddress)
   })
 
