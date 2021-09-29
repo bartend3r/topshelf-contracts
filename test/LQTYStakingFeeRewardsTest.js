@@ -344,479 +344,105 @@ contract('LQTYStaking revenue share tests', async accounts => {
     assert.equal(F_LUSD_After.toString(), F_LUSD_Before.toString())
   })
 
-  // MutiRewards does not do this. An alternative would be to FF the test to the end of the rewards
-  // withdraw and test to see if it has all of the rewards
-  // it("LQTY Staking: A single staker earns all ETH and LQTY fees that occur", async () => {
-  //   await openTrove({ extraLUSDAmount: toBN(dec(10000, 18)), ICR: toBN(dec(10, 18)), extraParams: { from: whale } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(20000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: A } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(30000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: B } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(40000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: C } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(50000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: D } })
+  // Adapted from the original for the MultiRewards staking contract
+  it("LQTY Staking: A single staker earns all ETH and LQTY fees that occur", async () => {
+    // FF time one year so owner can transfer LQTY
+    await th.fastForwardTime(timeValues.SECONDS_IN_ONE_YEAR, web3.currentProvider)
+    // multisig transfers LQTY to staker A
+    await lqtyToken.transfer(A, dec(100, 18), {from: multisig})
 
-  //   // FF time one year so owner can transfer LQTY
-  //   await th.fastForwardTime(timeValues.SECONDS_IN_ONE_YEAR, web3.currentProvider)
+    // A makes stake
+    // Here in MultiRewards they start earning from the trove fees.
+    // In the original lqtyStaking contract they would not get those trove fees,
+    // only subsequent fees. 
+    await lqtyToken.approve(lqtyStaking.address, dec(100, 18), {from: A})
+    await lqtyStaking.stake(dec(100, 18), {from: A})
 
-  //   // multisig transfers LQTY to staker A
-  //   await lqtyToken.transfer(A, dec(100, 18), {from: multisig})
+    // check contract fee balances ,assert 0
+    const LUSD_Start = await lusdToken.balanceOf(lqtyStaking.address);
+    assert.equal(LUSD_Start.toString(), '0')
+    const Collat_Start = await collateral.balanceOf(lqtyStaking.address);
+    assert.equal(Collat_Start.toString(), '0')
+    const A_ETHBalance_Start = toBN(await collateral.balanceOf(A))
+    const A_LUSDBalance_Start = toBN(await lusdToken.balanceOf(A))
 
-  //   // A makes stake
-  //   await lqtyToken.approve(lqtyStaking.address, dec(100, 18), {from: A})
-  //   await lqtyStaking.stake(dec(100, 18), {from: A})
+    await openTrove({ extraLUSDAmount: toBN(dec(10000, 18)), ICR: toBN(dec(10, 18)), extraParams: { from: whale } })
+    await openTrove({ extraLUSDAmount: toBN(dec(20000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: A } })
+    await openTrove({ extraLUSDAmount: toBN(dec(30000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: B } })
+    await openTrove({ extraLUSDAmount: toBN(dec(40000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: C } })
+    await openTrove({ extraLUSDAmount: toBN(dec(50000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: D } })
 
-  //   const B_BalBeforeREdemption = await lusdToken.balanceOf(B)
-  //   // B redeems
-  //   const redemptionTx_1 = await th.redeemCollateralAndGetTxObject(B, contracts, dec(100, 18))
+    // track the fees from the troves. Note that the balances in lqtyStaking
+    // were confirmed = 0 in assertions above
+    const LUSD_Troves = await lusdToken.balanceOf(lqtyStaking.address);
+    const Collat_Troves = await collateral.balanceOf(lqtyStaking.address);
+
+    const B_BalBeforeREdemption = await lusdToken.balanceOf(B)
+    // B redeems
+    const redemptionTx_1 = await th.redeemCollateralAndGetTxObject(B, contracts, dec(100, 18))
     
-  //   const B_BalAfterRedemption = await lusdToken.balanceOf(B)
-  //   assert.isTrue(B_BalAfterRedemption.lt(B_BalBeforeREdemption))
+    const B_BalAfterRedemption = await lusdToken.balanceOf(B)
+    assert.isTrue(B_BalAfterRedemption.lt(B_BalBeforeREdemption))
 
-  //   // check ETH fee 1 emitted in event is non-zero
-  //   const emittedETHFee_1 = toBN((await th.getEmittedRedemptionValues(redemptionTx_1))[3])
-  //   assert.isTrue(emittedETHFee_1.gt(toBN('0')))
+    // check ETH fee 1 emitted in event is non-zero
+    const emittedETHFee_1 = toBN((await th.getEmittedRedemptionValues(redemptionTx_1))[3])
+    assert.isTrue(emittedETHFee_1.gt(toBN('0')))
 
-  //   const C_BalBeforeREdemption = await lusdToken.balanceOf(C)
-  //   // C redeems
-  //   const redemptionTx_2 = await th.redeemCollateralAndGetTxObject(C, contracts, dec(100, 18))
+    const C_BalBeforeREdemption = await lusdToken.balanceOf(C)
+    // C redeems
+    const redemptionTx_2 = await th.redeemCollateralAndGetTxObject(C, contracts, dec(100, 18))
     
-  //   const C_BalAfterRedemption = await lusdToken.balanceOf(C)
-  //   assert.isTrue(C_BalAfterRedemption.lt(C_BalBeforeREdemption))
+    const C_BalAfterRedemption = await lusdToken.balanceOf(C)
+    assert.isTrue(C_BalAfterRedemption.lt(C_BalBeforeREdemption))
  
-  //    // check ETH fee 2 emitted in event is non-zero
-  //    const emittedETHFee_2 = toBN((await th.getEmittedRedemptionValues(redemptionTx_2))[3])
-  //    assert.isTrue(emittedETHFee_2.gt(toBN('0')))
+    // check ETH fee 2 emitted in event is non-zero
+    const emittedETHFee_2 = toBN((await th.getEmittedRedemptionValues(redemptionTx_2))[3])
+    assert.isTrue(emittedETHFee_2.gt(toBN('0')))
 
-  //   // D draws debt
-  //   const borrowingTx_1 = await borrowerOperations.withdrawLUSD(th._100pct, dec(104, 18), D, D, {from: D})
+    // D draws debt
+    const borrowingTx_1 = await borrowerOperations.withdrawLUSD(th._100pct, dec(104, 18), D, D, {from: D})
     
-  //   // Check LUSD fee value in event is non-zero
-  //   const emittedLUSDFee_1 = toBN(th.getLUSDFeeFromLUSDBorrowingEvent(borrowingTx_1))
-  //   assert.isTrue(emittedLUSDFee_1.gt(toBN('0')))
+    // Check LUSD fee value in event is non-zero
+    const emittedLUSDFee_1 = toBN(th.getLUSDFeeFromLUSDBorrowingEvent(borrowingTx_1))
+    assert.isTrue(emittedLUSDFee_1.gt(toBN('0')))
 
-  //   // B draws debt
-  //   const borrowingTx_2 = await borrowerOperations.withdrawLUSD(th._100pct, dec(17, 18), B, B, {from: B})
+    // B draws debt
+    const borrowingTx_2 = await borrowerOperations.withdrawLUSD(th._100pct, dec(17, 18), B, B, {from: B})
     
-  //   // Check LUSD fee value in event is non-zero
-  //   const emittedLUSDFee_2 = toBN(th.getLUSDFeeFromLUSDBorrowingEvent(borrowingTx_2))
-  //   assert.isTrue(emittedLUSDFee_2.gt(toBN('0')))
+    // Check LUSD fee value in event is non-zero
+    const emittedLUSDFee_2 = toBN(th.getLUSDFeeFromLUSDBorrowingEvent(borrowingTx_2))
+    assert.isTrue(emittedLUSDFee_2.gt(toBN('0')))
 
-  //   const expectedTotalETHGain = emittedETHFee_1.add(emittedETHFee_2)
-  //   const expectedTotalLUSDGain = emittedLUSDFee_1.add(emittedLUSDFee_2)
+    // LUSD and Collateral values once all the action has happened.
+    // need to stake for a week for this to accrue to the staker
+    const LUSD_Rewards = await lusdToken.balanceOf(lqtyStaking.address);
+    const Collat_Rewards = await collateral.balanceOf(lqtyStaking.address);
 
-  //   const A_ETHBalance_Before = toBN(await web3.eth.getBalance(A))
-  //   const A_LUSDBalance_Before = toBN(await lusdToken.balanceOf(A))
-
-  //   // A un-stakes
-  //   await lqtyStaking.unstake(dec(100, 18), {from: A, gasPrice: 0})
-
-  //   const A_ETHBalance_After = toBN(await web3.eth.getBalance(A))
-  //   const A_LUSDBalance_After = toBN(await lusdToken.balanceOf(A))
-
-
-  //   const A_ETHGain = A_ETHBalance_After.sub(A_ETHBalance_Before)
-  //   const A_LUSDGain = A_LUSDBalance_After.sub(A_LUSDBalance_Before)
-
-  //   assert.isAtMost(th.getDifference(expectedTotalETHGain, A_ETHGain), 1000)
-  //   assert.isAtMost(th.getDifference(expectedTotalLUSDGain, A_LUSDGain), 1000)
-  // })
-
-  // MutiRewards does not do this. An alternative would be to FF the test to the end of the rewards
-  // withdraw and test to see if it has all of the rewards
-  // it("stake(): Top-up sends out all accumulated ETH and LUSD gains to the staker", async () => { 
-  //   await openTrove({ extraLUSDAmount: toBN(dec(10000, 18)), ICR: toBN(dec(10, 18)), extraParams: { from: whale } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(20000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: A } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(30000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: B } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(40000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: C } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(50000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: D } })
-
-  //   // FF time one year so owner can transfer LQTY
-  //   await th.fastForwardTime(timeValues.SECONDS_IN_ONE_YEAR, web3.currentProvider)
-
-  //   // multisig transfers LQTY to staker A
-  //   await lqtyToken.transfer(A, dec(100, 18), {from: multisig})
-
-  //   // A makes stake
-  //   await lqtyToken.approve(lqtyStaking.address, dec(100, 18), {from: A})
-  //   await lqtyStaking.stake(dec(50, 18), {from: A})
-
-  //   const B_BalBeforeREdemption = await lusdToken.balanceOf(B)
-  //   // B redeems
-  //   const redemptionTx_1 = await th.redeemCollateralAndGetTxObject(B, contracts, dec(100, 18))
+    const expectedTotalETHGain = emittedETHFee_1.add(emittedETHFee_2).add(Collat_Troves)
+    const expectedTotalLUSDGain = emittedLUSDFee_1.add(emittedLUSDFee_2).add(LUSD_Troves)
     
-  //   const B_BalAfterRedemption = await lusdToken.balanceOf(B)
-  //   assert.isTrue(B_BalAfterRedemption.lt(B_BalBeforeREdemption))
-
-  //   // check ETH fee 1 emitted in event is non-zero
-  //   const emittedETHFee_1 = toBN((await th.getEmittedRedemptionValues(redemptionTx_1))[3])
-  //   assert.isTrue(emittedETHFee_1.gt(toBN('0')))
-
-  //   const C_BalBeforeREdemption = await lusdToken.balanceOf(C)
-  //   // C redeems
-  //   const redemptionTx_2 = await th.redeemCollateralAndGetTxObject(C, contracts, dec(100, 18))
     
-  //   const C_BalAfterRedemption = await lusdToken.balanceOf(C)
-  //   assert.isTrue(C_BalAfterRedemption.lt(C_BalBeforeREdemption))
- 
-  //    // check ETH fee 2 emitted in event is non-zero
-  //    const emittedETHFee_2 = toBN((await th.getEmittedRedemptionValues(redemptionTx_2))[3])
-  //    assert.isTrue(emittedETHFee_2.gt(toBN('0')))
-
-  //   // D draws debt
-  //   const borrowingTx_1 = await borrowerOperations.withdrawLUSD(th._100pct, dec(104, 18), D, D, {from: D})
+    const A_ETHBalance_Before = toBN(await collateral.balanceOf(A))
+    const A_LUSDBalance_Before = toBN(await lusdToken.balanceOf(A))
     
-  //   // Check LUSD fee value in event is non-zero
-  //   const emittedLUSDFee_1 = toBN(th.getLUSDFeeFromLUSDBorrowingEvent(borrowingTx_1))
-  //   assert.isTrue(emittedLUSDFee_1.gt(toBN('0')))
-
-  //   // B draws debt
-  //   const borrowingTx_2 = await borrowerOperations.withdrawLUSD(th._100pct, dec(17, 18), B, B, {from: B})
+    // FF time one week so staker gets all the rewards
+    await th.fastForwardTime(604801, web3.currentProvider)
     
-  //   // Check LUSD fee value in event is non-zero
-  //   const emittedLUSDFee_2 = toBN(th.getLUSDFeeFromLUSDBorrowingEvent(borrowingTx_2))
-  //   assert.isTrue(emittedLUSDFee_2.gt(toBN('0')))
-
-  //   const expectedTotalETHGain = emittedETHFee_1.add(emittedETHFee_2)
-  //   const expectedTotalLUSDGain = emittedLUSDFee_1.add(emittedLUSDFee_2)
-
-  //   const A_ETHBalance_Before = toBN(await web3.eth.getBalance(A))
-  //   const A_LUSDBalance_Before = toBN(await lusdToken.balanceOf(A))
-
-  //   // A tops up
-  //   await lqtyStaking.stake(dec(50, 18), {from: A, gasPrice: 0})
-
-  //   const A_ETHBalance_After = toBN(await web3.eth.getBalance(A))
-  //   const A_LUSDBalance_After = toBN(await lusdToken.balanceOf(A))
-
-  //   const A_ETHGain = A_ETHBalance_After.sub(A_ETHBalance_Before)
-  //   const A_LUSDGain = A_LUSDBalance_After.sub(A_LUSDBalance_Before)
-
-  //   assert.isAtMost(th.getDifference(expectedTotalETHGain, A_ETHGain), 1000)
-  //   assert.isAtMost(th.getDifference(expectedTotalLUSDGain, A_LUSDGain), 1000)
-  // })
-
-  // MutiRewards does not do this. An alternative would be to FF the test to the end of the rewards
-  // withdraw and test to see if it has all of the rewards
-  // it("getPendingETHGain(): Returns the staker's correct pending ETH gain", async () => { 
-  //   await openTrove({ extraLUSDAmount: toBN(dec(10000, 18)), ICR: toBN(dec(10, 18)), extraParams: { from: whale } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(20000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: A } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(30000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: B } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(40000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: C } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(50000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: D } })
-
-  //   // FF time one year so owner can transfer LQTY
-  //   await th.fastForwardTime(timeValues.SECONDS_IN_ONE_YEAR, web3.currentProvider)
-
-  //   // multisig transfers LQTY to staker A
-  //   await lqtyToken.transfer(A, dec(100, 18), {from: multisig})
-
-  //   // A makes stake
-  //   await lqtyToken.approve(lqtyStaking.address, dec(100, 18), {from: A})
-  //   await lqtyStaking.stake(dec(50, 18), {from: A})
-
-  //   const B_BalBeforeREdemption = await lusdToken.balanceOf(B)
-  //   // B redeems
-  //   const redemptionTx_1 = await th.redeemCollateralAndGetTxObject(B, contracts, dec(100, 18))
+    // A un-stakes
+    await lqtyStaking.exit({from: A, gasPrice: 0})
     
-  //   const B_BalAfterRedemption = await lusdToken.balanceOf(B)
-  //   assert.isTrue(B_BalAfterRedemption.lt(B_BalBeforeREdemption))
-
-  //   // check ETH fee 1 emitted in event is non-zero
-  //   const emittedETHFee_1 = toBN((await th.getEmittedRedemptionValues(redemptionTx_1))[3])
-  //   assert.isTrue(emittedETHFee_1.gt(toBN('0')))
-
-  //   const C_BalBeforeREdemption = await lusdToken.balanceOf(C)
-  //   // C redeems
-  //   const redemptionTx_2 = await th.redeemCollateralAndGetTxObject(C, contracts, dec(100, 18))
+    const A_ETHBalance_After = toBN(await collateral.balanceOf(A))
+    const A_LUSDBalance_After = toBN(await lusdToken.balanceOf(A))
     
-  //   const C_BalAfterRedemption = await lusdToken.balanceOf(C)
-  //   assert.isTrue(C_BalAfterRedemption.lt(C_BalBeforeREdemption))
- 
-  //    // check ETH fee 2 emitted in event is non-zero
-  //    const emittedETHFee_2 = toBN((await th.getEmittedRedemptionValues(redemptionTx_2))[3])
-  //    assert.isTrue(emittedETHFee_2.gt(toBN('0')))
-
-  //   const expectedTotalETHGain = emittedETHFee_1.add(emittedETHFee_2)
-
-  //   const A_ETHGain = await lqtyStaking.getPendingETHGain(A)
-
-  //   assert.isAtMost(th.getDifference(expectedTotalETHGain, A_ETHGain), 1000)
-  // })
-
-  // MutiRewards does not do this. An alternative would be to FF the test to the end of the rewards
-  // withdraw and test to see if it has all of the rewards
-  // it("getPendingLUSDGain(): Returns the staker's correct pending LUSD gain", async () => { 
-  //   await openTrove({ extraLUSDAmount: toBN(dec(10000, 18)), ICR: toBN(dec(10, 18)), extraParams: { from: whale } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(20000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: A } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(30000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: B } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(40000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: C } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(50000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: D } })
-
-  //   // FF time one year so owner can transfer LQTY
-  //   await th.fastForwardTime(timeValues.SECONDS_IN_ONE_YEAR, web3.currentProvider)
-
-  //   // multisig transfers LQTY to staker A
-  //   await lqtyToken.transfer(A, dec(100, 18), {from: multisig})
-
-  //   // A makes stake
-  //   await lqtyToken.approve(lqtyStaking.address, dec(100, 18), {from: A})
-  //   await lqtyStaking.stake(dec(50, 18), {from: A})
-
-  //   const B_BalBeforeREdemption = await lusdToken.balanceOf(B)
-  //   // B redeems
-  //   const redemptionTx_1 = await th.redeemCollateralAndGetTxObject(B, contracts, dec(100, 18))
+    const LUSD_After = await lusdToken.balanceOf(lqtyStaking.address);
+    const Collat_After = await collateral.balanceOf(lqtyStaking.address);
     
-  //   const B_BalAfterRedemption = await lusdToken.balanceOf(B)
-  //   assert.isTrue(B_BalAfterRedemption.lt(B_BalBeforeREdemption))
+    const A_ETHGain = A_ETHBalance_After.sub(A_ETHBalance_Before)
+    const A_LUSDGain = A_LUSDBalance_After.sub(A_LUSDBalance_Before)
 
-  //   // check ETH fee 1 emitted in event is non-zero
-  //   const emittedETHFee_1 = toBN((await th.getEmittedRedemptionValues(redemptionTx_1))[3])
-  //   assert.isTrue(emittedETHFee_1.gt(toBN('0')))
-
-  //   const C_BalBeforeREdemption = await lusdToken.balanceOf(C)
-  //   // C redeems
-  //   const redemptionTx_2 = await th.redeemCollateralAndGetTxObject(C, contracts, dec(100, 18))
-    
-  //   const C_BalAfterRedemption = await lusdToken.balanceOf(C)
-  //   assert.isTrue(C_BalAfterRedemption.lt(C_BalBeforeREdemption))
- 
-  //    // check ETH fee 2 emitted in event is non-zero
-  //    const emittedETHFee_2 = toBN((await th.getEmittedRedemptionValues(redemptionTx_2))[3])
-  //    assert.isTrue(emittedETHFee_2.gt(toBN('0')))
-
-  //   // D draws debt
-  //   const borrowingTx_1 = await borrowerOperations.withdrawLUSD(th._100pct, dec(104, 18), D, D, {from: D})
-    
-  //   // Check LUSD fee value in event is non-zero
-  //   const emittedLUSDFee_1 = toBN(th.getLUSDFeeFromLUSDBorrowingEvent(borrowingTx_1))
-  //   assert.isTrue(emittedLUSDFee_1.gt(toBN('0')))
-
-  //   // B draws debt
-  //   const borrowingTx_2 = await borrowerOperations.withdrawLUSD(th._100pct, dec(17, 18), B, B, {from: B})
-    
-  //   // Check LUSD fee value in event is non-zero
-  //   const emittedLUSDFee_2 = toBN(th.getLUSDFeeFromLUSDBorrowingEvent(borrowingTx_2))
-  //   assert.isTrue(emittedLUSDFee_2.gt(toBN('0')))
-
-  //   const expectedTotalLUSDGain = emittedLUSDFee_1.add(emittedLUSDFee_2)
-  //   const A_LUSDGain = await lqtyStaking.getPendingLUSDGain(A)
-
-  //   assert.isAtMost(th.getDifference(expectedTotalLUSDGain, A_LUSDGain), 1000)
-  // })
-
-  // MutiRewards does not do this. An alternative would be to FF the test to the end of the rewards
-  // withdraw and test to see if it has all of the rewards  
-  // // - multi depositors, several rewards
-  // it("LQTY Staking: Multiple stakers earn the correct share of all ETH and LQTY fees, based on their stake size", async () => {
-  //   await openTrove({ extraLUSDAmount: toBN(dec(10000, 18)), ICR: toBN(dec(10, 18)), extraParams: { from: whale } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(20000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: A } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(30000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: B } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(40000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: C } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(50000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: D } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(40000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: E } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(50000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: F } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(50000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: G } })
-
-  //   // FF time one year so owner can transfer LQTY
-  //   await th.fastForwardTime(timeValues.SECONDS_IN_ONE_YEAR, web3.currentProvider)
-
-  //   // multisig transfers LQTY to staker A, B, C
-  //   await lqtyToken.transfer(A, dec(100, 18), {from: multisig})
-  //   await lqtyToken.transfer(B, dec(200, 18), {from: multisig})
-  //   await lqtyToken.transfer(C, dec(300, 18), {from: multisig})
-
-  //   // A, B, C make stake
-  //   await lqtyToken.approve(lqtyStaking.address, dec(100, 18), {from: A})
-  //   await lqtyToken.approve(lqtyStaking.address, dec(200, 18), {from: B})
-  //   await lqtyToken.approve(lqtyStaking.address, dec(300, 18), {from: C})
-  //   await lqtyStaking.stake(dec(100, 18), {from: A})
-  //   await lqtyStaking.stake(dec(200, 18), {from: B})
-  //   await lqtyStaking.stake(dec(300, 18), {from: C})
-
-  //   // Confirm staking contract holds 600 LQTY
-  //   // console.log(`lqty staking LQTY bal: ${await lqtyToken.balanceOf(lqtyStaking.address)}`)
-  //   assert.equal(await lqtyToken.balanceOf(lqtyStaking.address), dec(600, 18))
-  //   assert.equal(await lqtyStaking.totalLQTYStaked(), dec(600, 18))
-
-  //   // F redeems
-  //   const redemptionTx_1 = await th.redeemCollateralAndGetTxObject(F, contracts, dec(45, 18))
-  //   const emittedETHFee_1 = toBN((await th.getEmittedRedemptionValues(redemptionTx_1))[3])
-  //   assert.isTrue(emittedETHFee_1.gt(toBN('0')))
-
-  //    // G redeems
-  //    const redemptionTx_2 = await th.redeemCollateralAndGetTxObject(G, contracts, dec(197, 18))
-  //    const emittedETHFee_2 = toBN((await th.getEmittedRedemptionValues(redemptionTx_2))[3])
-  //    assert.isTrue(emittedETHFee_2.gt(toBN('0')))
-
-  //   // F draws debt
-  //   const borrowingTx_1 = await borrowerOperations.withdrawLUSD(th._100pct, dec(104, 18), F, F, {from: F})
-  //   const emittedLUSDFee_1 = toBN(th.getLUSDFeeFromLUSDBorrowingEvent(borrowingTx_1))
-  //   assert.isTrue(emittedLUSDFee_1.gt(toBN('0')))
-
-  //   // G draws debt
-  //   const borrowingTx_2 = await borrowerOperations.withdrawLUSD(th._100pct, dec(17, 18), G, G, {from: G})
-  //   const emittedLUSDFee_2 = toBN(th.getLUSDFeeFromLUSDBorrowingEvent(borrowingTx_2))
-  //   assert.isTrue(emittedLUSDFee_2.gt(toBN('0')))
-
-  //   // D obtains LQTY from owner and makes a stake
-  //   await lqtyToken.transfer(D, dec(50, 18), {from: multisig})
-  //   await lqtyToken.approve(lqtyStaking.address, dec(50, 18), {from: D})
-  //   await lqtyStaking.stake(dec(50, 18), {from: D})
-
-  //   // Confirm staking contract holds 650 LQTY
-  //   assert.equal(await lqtyToken.balanceOf(lqtyStaking.address), dec(650, 18))
-  //   assert.equal(await lqtyStaking.totalLQTYStaked(), dec(650, 18))
-
-  //    // G redeems
-  //    const redemptionTx_3 = await th.redeemCollateralAndGetTxObject(C, contracts, dec(197, 18))
-  //    const emittedETHFee_3 = toBN((await th.getEmittedRedemptionValues(redemptionTx_3))[3])
-  //    assert.isTrue(emittedETHFee_3.gt(toBN('0')))
-
-  //    // G draws debt
-  //   const borrowingTx_3 = await borrowerOperations.withdrawLUSD(th._100pct, dec(17, 18), G, G, {from: G})
-  //   const emittedLUSDFee_3 = toBN(th.getLUSDFeeFromLUSDBorrowingEvent(borrowingTx_3))
-  //   assert.isTrue(emittedLUSDFee_3.gt(toBN('0')))
-     
-  //   /*  
-  //   Expected rewards:
-
-  //   A_ETH: (100* ETHFee_1)/600 + (100* ETHFee_2)/600 + (100*ETH_Fee_3)/650
-  //   B_ETH: (200* ETHFee_1)/600 + (200* ETHFee_2)/600 + (200*ETH_Fee_3)/650
-  //   C_ETH: (300* ETHFee_1)/600 + (300* ETHFee_2)/600 + (300*ETH_Fee_3)/650
-  //   D_ETH:                                             (100*ETH_Fee_3)/650
-
-  //   A_LUSD: (100*LUSDFee_1 )/600 + (100* LUSDFee_2)/600 + (100*LUSDFee_3)/650
-  //   B_LUSD: (200* LUSDFee_1)/600 + (200* LUSDFee_2)/600 + (200*LUSDFee_3)/650
-  //   C_LUSD: (300* LUSDFee_1)/600 + (300* LUSDFee_2)/600 + (300*LUSDFee_3)/650
-  //   D_LUSD:                                               (100*LUSDFee_3)/650
-  //   */
-
-  //   // Expected ETH gains
-  //   const expectedETHGain_A = toBN('100').mul(emittedETHFee_1).div( toBN('600'))
-  //                           .add(toBN('100').mul(emittedETHFee_2).div( toBN('600')))
-  //                           .add(toBN('100').mul(emittedETHFee_3).div( toBN('650')))
-
-  //   const expectedETHGain_B = toBN('200').mul(emittedETHFee_1).div( toBN('600'))
-  //                           .add(toBN('200').mul(emittedETHFee_2).div( toBN('600')))
-  //                           .add(toBN('200').mul(emittedETHFee_3).div( toBN('650')))
-
-  //   const expectedETHGain_C = toBN('300').mul(emittedETHFee_1).div( toBN('600'))
-  //                           .add(toBN('300').mul(emittedETHFee_2).div( toBN('600')))
-  //                           .add(toBN('300').mul(emittedETHFee_3).div( toBN('650')))
-
-  //   const expectedETHGain_D = toBN('50').mul(emittedETHFee_3).div( toBN('650'))
-
-  //   // Expected LUSD gains:
-  //   const expectedLUSDGain_A = toBN('100').mul(emittedLUSDFee_1).div( toBN('600'))
-  //                           .add(toBN('100').mul(emittedLUSDFee_2).div( toBN('600')))
-  //                           .add(toBN('100').mul(emittedLUSDFee_3).div( toBN('650')))
-
-  //   const expectedLUSDGain_B = toBN('200').mul(emittedLUSDFee_1).div( toBN('600'))
-  //                           .add(toBN('200').mul(emittedLUSDFee_2).div( toBN('600')))
-  //                           .add(toBN('200').mul(emittedLUSDFee_3).div( toBN('650')))
-
-  //   const expectedLUSDGain_C = toBN('300').mul(emittedLUSDFee_1).div( toBN('600'))
-  //                           .add(toBN('300').mul(emittedLUSDFee_2).div( toBN('600')))
-  //                           .add(toBN('300').mul(emittedLUSDFee_3).div( toBN('650')))
-    
-  //   const expectedLUSDGain_D = toBN('50').mul(emittedLUSDFee_3).div( toBN('650'))
-
-
-  //   const A_ETHBalance_Before = toBN(await web3.eth.getBalance(A))
-  //   const A_LUSDBalance_Before = toBN(await lusdToken.balanceOf(A))
-  //   const B_ETHBalance_Before = toBN(await web3.eth.getBalance(B))
-  //   const B_LUSDBalance_Before = toBN(await lusdToken.balanceOf(B))
-  //   const C_ETHBalance_Before = toBN(await web3.eth.getBalance(C))
-  //   const C_LUSDBalance_Before = toBN(await lusdToken.balanceOf(C))
-  //   const D_ETHBalance_Before = toBN(await web3.eth.getBalance(D))
-  //   const D_LUSDBalance_Before = toBN(await lusdToken.balanceOf(D))
-
-  //   // A-D un-stake
-  //   const unstake_A = await lqtyStaking.unstake(dec(100, 18), {from: A, gasPrice: 0})
-  //   const unstake_B = await lqtyStaking.unstake(dec(200, 18), {from: B, gasPrice: 0})
-  //   const unstake_C = await lqtyStaking.unstake(dec(400, 18), {from: C, gasPrice: 0})
-  //   const unstake_D = await lqtyStaking.unstake(dec(50, 18), {from: D, gasPrice: 0})
-
-  //   // Confirm all depositors could withdraw
-
-  //   //Confirm pool Size is now 0
-  //   assert.equal((await lqtyToken.balanceOf(lqtyStaking.address)), '0')
-  //   assert.equal((await lqtyStaking.totalLQTYStaked()), '0')
-
-  //   // Get A-D ETH and LUSD balances
-  //   const A_ETHBalance_After = toBN(await web3.eth.getBalance(A))
-  //   const A_LUSDBalance_After = toBN(await lusdToken.balanceOf(A))
-  //   const B_ETHBalance_After = toBN(await web3.eth.getBalance(B))
-  //   const B_LUSDBalance_After = toBN(await lusdToken.balanceOf(B))
-  //   const C_ETHBalance_After = toBN(await web3.eth.getBalance(C))
-  //   const C_LUSDBalance_After = toBN(await lusdToken.balanceOf(C))
-  //   const D_ETHBalance_After = toBN(await web3.eth.getBalance(D))
-  //   const D_LUSDBalance_After = toBN(await lusdToken.balanceOf(D))
-
-  //   // Get ETH and LUSD gains
-  //   const A_ETHGain = A_ETHBalance_After.sub(A_ETHBalance_Before)
-  //   const A_LUSDGain = A_LUSDBalance_After.sub(A_LUSDBalance_Before)
-  //   const B_ETHGain = B_ETHBalance_After.sub(B_ETHBalance_Before)
-  //   const B_LUSDGain = B_LUSDBalance_After.sub(B_LUSDBalance_Before)
-  //   const C_ETHGain = C_ETHBalance_After.sub(C_ETHBalance_Before)
-  //   const C_LUSDGain = C_LUSDBalance_After.sub(C_LUSDBalance_Before)
-  //   const D_ETHGain = D_ETHBalance_After.sub(D_ETHBalance_Before)
-  //   const D_LUSDGain = D_LUSDBalance_After.sub(D_LUSDBalance_Before)
-
-  //   // Check gains match expected amounts
-  //   assert.isAtMost(th.getDifference(expectedETHGain_A, A_ETHGain), 1000)
-  //   assert.isAtMost(th.getDifference(expectedLUSDGain_A, A_LUSDGain), 1000)
-  //   assert.isAtMost(th.getDifference(expectedETHGain_B, B_ETHGain), 1000)
-  //   assert.isAtMost(th.getDifference(expectedLUSDGain_B, B_LUSDGain), 1000)
-  //   assert.isAtMost(th.getDifference(expectedETHGain_C, C_ETHGain), 1000)
-  //   assert.isAtMost(th.getDifference(expectedLUSDGain_C, C_LUSDGain), 1000)
-  //   assert.isAtMost(th.getDifference(expectedETHGain_D, D_ETHGain), 1000)
-  //   assert.isAtMost(th.getDifference(expectedLUSDGain_D, D_LUSDGain), 1000)
-  // })
-
-  // This won't apply to an ERC version of the system. Need an analogue.
-  // it("unstake(): reverts if caller has ETH gains and can't receive ETH",  async () => {
-  //   await openTrove({ extraLUSDAmount: toBN(dec(20000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: whale } })  
-  //   await openTrove({ extraLUSDAmount: toBN(dec(20000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: A } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(30000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: B } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(40000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: C } })
-  //   await openTrove({ extraLUSDAmount: toBN(dec(50000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: D } })
-
-  //   await th.fastForwardTime(timeValues.SECONDS_IN_ONE_YEAR, web3.currentProvider)
-
-  //   // multisig transfers LQTY to staker A and the non-payable proxy
-  //   await lqtyToken.transfer(A, dec(100, 18), {from: multisig})
-  //   await lqtyToken.transfer(nonPayable.address, dec(100, 18), {from: multisig})
-
-  //   //  A makes stake
-  //   const A_stakeTx = await lqtyStaking.stake(dec(100, 18), {from: A})
-  //   assert.isTrue(A_stakeTx.receipt.status)
-
-  //   //  A tells proxy to make a stake
-  //   const proxystakeTxData = await th.getTransactionData('stake(uint256)', ['0x56bc75e2d63100000'])  // proxy stakes 100 LQTY
-  //   await nonPayable.forward(lqtyStaking.address, proxystakeTxData, {from: A})
-
-
-  //   // B makes a redemption, creating ETH gain for proxy
-  //   const redemptionTx_1 = await th.redeemCollateralAndGetTxObject(B, contracts, dec(45, 18))
-    
-  //   const proxy_ETHGain = await lqtyStaking.getPendingETHGain(nonPayable.address)
-  //   assert.isTrue(proxy_ETHGain.gt(toBN('0')))
-
-  //   // Expect this tx to revert: stake() tries to send nonPayable proxy's accumulated ETH gain (albeit 0),
-  //   //  A tells proxy to unstake
-  //   const proxyUnStakeTxData = await th.getTransactionData('unstake(uint256)', ['0x56bc75e2d63100000'])  // proxy stakes 100 LQTY
-  //   const proxyUnstakeTxPromise = nonPayable.forward(lqtyStaking.address, proxyUnStakeTxData, {from: A})
-   
-  //   // but nonPayable proxy can not accept ETH - therefore stake() reverts.
-  //   await assertRevert(proxyUnstakeTxPromise)
-  // })
-
-  // it("receive(): reverts when it receives ETH from an address that is not the Active Pool",  async () => { 
-  //   const ethSendTxPromise1 = web3.eth.sendTransaction({to: lqtyStaking.address, from: A, value: dec(1, 'ether')})
-  //   const ethSendTxPromise2 = web3.eth.sendTransaction({to: lqtyStaking.address, from: owner, value: dec(1, 'ether')})
-
-  //   await assertRevert(ethSendTxPromise1)
-  //   await assertRevert(ethSendTxPromise2)
-  // })
+    assert.isAtMost(th.getDifference(expectedTotalETHGain, A_ETHGain), 620000)
+    assert.isAtMost(th.getDifference(expectedTotalLUSDGain, A_LUSDGain), 2000000)
+  })
 
   it("unstake(): reverts if user has no stake",  async () => {  
     const unstakeTxPromise1 = lqtyStaking.withdraw(1, {from: A})
