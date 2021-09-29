@@ -262,41 +262,45 @@ contract('Deployment script - Sets correct contract addresses dependencies after
   it('Sets the correct LQTYToken address in LQTYStaking', async () => {
     const lqtyTokenAddress = lqtyToken.address
 
-    const recordedLQTYTokenAddress = await lqtyStaking.lqtyToken()
+    const recordedLQTYTokenAddress = await lqtyStaking.stakingToken()
     assert.equal(lqtyTokenAddress, recordedLQTYTokenAddress)
   })
 
-  // Sets ActivePool in LQTYStaking
-  it('Sets the correct ActivePool address in LQTYStaking', async () => {
-    const activePoolAddress = activePool.address
+  // // Not implemented on Multirewards
+  // // Sets ActivePool in LQTYStaking
+  // it('Sets the correct ActivePool address in LQTYStaking', async () => {
+  //   const activePoolAddress = activePool.address
 
-    const recordedActivePoolAddress = await lqtyStaking.activePoolAddress()
-    assert.equal(activePoolAddress, recordedActivePoolAddress)
-  })
+  //   const recordedActivePoolAddress = await lqtyStaking.activePoolAddress()
+  //   assert.equal(activePoolAddress, recordedActivePoolAddress)
+  // })
 
-  // Sets LUSDToken in LQTYStaking
-  it('Sets the correct ActivePool address in LQTYStaking', async () => {
-    const lusdTokenAddress = lusdToken.address
+  // // Not implemented on Multirewards
+  // // Sets LUSDToken in LQTYStaking
+  // it('Sets the correct lusdToken address in LQTYStaking', async () => {
+  //   const lusdTokenAddress = lusdToken.address
 
-    const recordedLUSDTokenAddress = await lqtyStaking.lusdToken()
-    assert.equal(lusdTokenAddress, recordedLUSDTokenAddress)
-  })
+  //   const recordedLUSDTokenAddress = await lqtyStaking.lusdToken()
+  //   assert.equal(lusdTokenAddress, recordedLUSDTokenAddress)
+  // })
 
-  // Sets TroveManager in LQTYStaking
-  it('Sets the correct ActivePool address in LQTYStaking', async () => {
-    const troveManagerAddress = troveManager.address
+  // // not relevant to multirewards
+  // // Sets TroveManager in LQTYStaking
+  // it('Sets the correct troveManager address in LQTYStaking', async () => {
+  //   const troveManagerAddress = troveManager.address
 
-    const recordedTroveManagerAddress = await lqtyStaking.troveManagerAddress()
-    assert.equal(troveManagerAddress, recordedTroveManagerAddress)
-  })
+  //   const recordedTroveManagerAddress = await lqtyStaking.troveManagerAddress()
+  //   assert.equal(troveManagerAddress, recordedTroveManagerAddress)
+  // })
 
-  // Sets BorrowerOperations in LQTYStaking
-  it('Sets the correct BorrowerOperations address in LQTYStaking', async () => {
-    const borrowerOperationsAddress = borrowerOperations.address
+  // // not relevant to multirewards
+  // // Sets BorrowerOperations in LQTYStaking
+  // it('Sets the correct BorrowerOperations address in LQTYStaking', async () => {
+  //   const borrowerOperationsAddress = borrowerOperations.address
 
-    const recordedBorrowerOperationsAddress = await lqtyStaking.borrowerOperationsAddress()
-    assert.equal(borrowerOperationsAddress, recordedBorrowerOperationsAddress)
-  })
+  //   const recordedBorrowerOperationsAddress = await lqtyStaking.borrowerOperationsAddress()
+  //   assert.equal(borrowerOperationsAddress, recordedBorrowerOperationsAddress)
+  // })
 
   // ---  LQTYToken ---
 

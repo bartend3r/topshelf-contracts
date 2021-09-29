@@ -293,22 +293,9 @@ class DeploymentHelper {
     // set contract addresses in the FunctionCaller
     await contracts.functionCaller.setTroveManagerAddress(contracts.troveManager.address)
     await contracts.functionCaller.setSortedTrovesAddress(contracts.sortedTroves.address)
-
-    // set contracts in the Trove Manager
-    await contracts.troveManager.setAddresses(
-      contracts.borrowerOperations.address,
-      contracts.activePool.address,
-      contracts.defaultPool.address,
-      contracts.stabilityPool.address,
-      contracts.gasPool.address,
-      contracts.collSurplusPool.address,
-      contracts.priceFeedTestnet.address,
-      contracts.lusdToken.address,
-      contracts.sortedTroves.address,
-      LQTYContracts.lqtyToken.address,
-      LQTYContracts.lqtyStaking.address
-    )
-
+    
+    // had to switch troveManager/BorrowerOperations order as troveManager reads 
+    // collateral token from BorrowerOperations.
     // set contracts in BorrowerOperations
     await contracts.borrowerOperations.setAddresses(
       contracts.troveManager.address,
@@ -323,6 +310,23 @@ class DeploymentHelper {
       LQTYContracts.lqtyStaking.address,
       contracts.collateral.address
     )
+
+    // set contracts in the Trove Manager
+    await contracts.troveManager.setAddresses(
+      contracts.borrowerOperations.address,
+      contracts.activePool.address,
+      contracts.defaultPool.address,
+      contracts.stabilityPool.address,
+      contracts.gasPool.address,
+      contracts.collSurplusPool.address,
+      contracts.priceFeedTestnet.address,
+      contracts.lusdToken.address,
+      contracts.sortedTroves.address,
+      LQTYContracts.lqtyToken.address,
+      LQTYContracts.lqtyStaking.address,
+    )
+
+
 
     // set contracts in the Pools
     await contracts.stabilityPool.setAddresses(
@@ -367,9 +371,9 @@ class DeploymentHelper {
 
   static async connectLQTYContractsToCore(LQTYContracts, coreContracts) {
     await LQTYContracts.lqtyStaking.setStakingToken(LQTYContracts.lqtyToken.address)
-    await LQTYContracts.lqtyStaking.addReward(coreContracts.lusdToken.address, [coreContracts.borrowerOperations.address])
+    await LQTYContracts.lqtyStaking.addReward(coreContracts.lusdToken.address, [coreContracts.borrowerOperations.address, coreContracts.troveManager.address])
     const collateral = await coreContracts.troveManager.collateralToken()
-    await LQTYContracts.lqtyStaking.addReward(collateral, [coreContracts.troveManager.address])
+    await LQTYContracts.lqtyStaking.addReward(collateral, [coreContracts.troveManager.address, coreContracts.borrowerOperations.address])
 
     await LQTYContracts.communityIssuance.setAddresses(
       LQTYContracts.lqtyToken.address,

@@ -58,52 +58,71 @@ contract('All Liquity functions with onlyOwner modifier', async accounts => {
     }
   }
 
-  const testSetAddresses = async (contract, numberOfAddresses) => {
-    const dumbContract = await GasPool.new()
-    const params = Array(numberOfAddresses).fill(dumbContract.address)
-
+  const testSetAddresses = async (contract, addresses) => {
     // Attempt call from alice
-    await th.assertRevert(contract.setAddresses(...params, { from: alice }))
+    await th.assertRevert(contract.setAddresses(...addresses, { from: alice }))
 
-    // Attempt to use zero address
-    await testZeroAddress(contract, params)
-    // Attempt to use non contract
-    await testNonContractAddress(contract, params)
+    // // Attempt to use zero address
+    await testZeroAddress(contract, addresses)
+    // // Attempt to use non contract
+    await testNonContractAddress(contract, addresses)
 
     // Owner can successfully set any address
-    const txOwner = await contract.setAddresses(...params, { from: owner })
+    const txOwner = await contract.setAddresses(...addresses, { from: owner })
     assert.isTrue(txOwner.receipt.status)
     // fails if called twice
-    await th.assertRevert(contract.setAddresses(...params, { from: owner }))
+    await th.assertRevert(contract.setAddresses(...addresses, { from: owner }))
   }
 
   describe('TroveManager', async accounts => {
     it("setAddresses(): reverts when called by non-owner, with wrong addresses, or twice", async () => {
-      await testSetAddresses(troveManager, 11)
+      const dumbContract = await GasPool.new()
+      let params = [
+        borrowerOperations.address,
+        activePool.address,
+      ]
+      const moreParams = Array(9).fill(dumbContract.address)
+      params.push(...moreParams)
+  
+      await testSetAddresses(troveManager, params)
     })
   })
 
   describe('BorrowerOperations', async accounts => {
     it("setAddresses(): reverts when called by non-owner, with wrong addresses, or twice", async () => {
-      await testSetAddresses(borrowerOperations, 11)
+      const dumbContract = await GasPool.new()
+      let params = []
+      const moreParams = Array(11).fill(dumbContract.address)
+      params.push(...moreParams)
+      await testSetAddresses(borrowerOperations, params)
     })
   })
 
   describe('DefaultPool', async accounts => {
     it("setAddresses(): reverts when called by non-owner, with wrong addresses, or twice", async () => {
-      await testSetAddresses(defaultPool, 2)
+      const dumbContract = await GasPool.new()
+      let params = [dumbContract.address, activePool.address]
+      await testSetAddresses(defaultPool, params)
     })
   })
 
   describe('StabilityPool', async accounts => {
     it("setAddresses(): reverts when called by non-owner, with wrong addresses, or twice", async () => {
-      await testSetAddresses(stabilityPool, 7)
+      const dumbContract = await GasPool.new()
+      let params = [borrowerOperations.address]
+      const moreParams = Array(6).fill(dumbContract.address)
+      params.push(...moreParams)
+      await testSetAddresses(stabilityPool, params)
     })
   })
 
   describe('ActivePool', async accounts => {
     it("setAddresses(): reverts when called by non-owner, with wrong addresses, or twice", async () => {
-      await testSetAddresses(activePool, 4)
+      const dumbContract = await GasPool.new()
+      let params = [borrowerOperations.address]
+      const moreParams = Array(3).fill(dumbContract.address)
+      params.push(...moreParams)
+      await testSetAddresses(activePool, params)
     })
   })
 
@@ -147,12 +166,12 @@ contract('All Liquity functions with onlyOwner modifier', async accounts => {
       await th.assertRevert(communityIssuance.setAddresses(...params, { from: owner }))
     })
   })
-
-  describe('LQTYStaking', async accounts => {
-    it("setAddresses(): reverts when called by non-owner, with wrong addresses, or twice", async () => {
-      await testSetAddresses(lqtyStaking, 5)
-    })
-  })
+  // remove as multirewards replaces LQTYStaking and does not have setAddresses
+  // describe('LQTYStaking', async accounts => {
+  //   it("setAddresses(): reverts when called by non-owner, with wrong addresses, or twice", async () => {
+  //     await testSetAddresses(lqtyStaking, 5)
+  //   })
+  // })
 
   describe('LockupContractFactory', async accounts => {
     it("setLQTYAddress(): reverts when called by non-owner, with wrong address, or twice", async () => {

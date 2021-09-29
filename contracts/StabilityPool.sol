@@ -458,7 +458,7 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         ETH = ETH.sub(depositorETHGain);
         emit StabilityPoolETHBalanceUpdated(ETH);
         emit EtherSent(msg.sender, depositorETHGain);
-
+        collateralToken.approve(address(borrowerOperations), depositorETHGain);
         borrowerOperations.moveETHGainToTrove(depositorETHGain, msg.sender, _upperHint, _lowerHint);
     }
 
@@ -525,7 +525,7 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
             uint LUSDLossPerUnitStaked) = _computeRewardsPerUnitStaked(_collToAdd, _debtToOffset, totalLUSD);
 
         _updateRewardSumAndProduct(ETHGainPerUnitStaked, LUSDLossPerUnitStaked);  // updates S and P
-
+        collateralToken.approve(address(borrowerOperations), _collToAdd);
         _moveOffsetCollAndDebt(_collToAdd, _debtToOffset);
     }
 
@@ -632,7 +632,13 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
 
         // Burn the debt that was successfully offset
         lusdToken.burn(address(this), _debtToOffset);
-
+        // added below to track and emit new collateral as it would for payable ETH
+        // this.notifyReceiveCollateral(_collToAdd); wants the caller to be the 
+        // activepool, which is fine if activepool was transferring ETH to the
+        // notifyReceiveCollateral fallback, but we can't "check" that for an 
+        // ERC transfer, so I put the next two lines here.
+        ETH = ETH.add(_collToAdd);
+        StabilityPoolETHBalanceUpdated(ETH);
         activePoolCached.sendCollateral(address(this), _collToAdd, false);
     }
 

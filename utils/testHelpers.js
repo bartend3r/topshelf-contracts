@@ -3,6 +3,7 @@ const BN = require('bn.js')
 const LockupContract = artifacts.require(("./LockupContract.sol"))
 const Destructible = artifacts.require("./TestContracts/Destructible.sol")
 
+
 const MoneyValues = {
   negative_5e17: "-" + web3.utils.toWei('500', 'finney'),
   negative_1e18: "-" + web3.utils.toWei('1', 'ether'),
@@ -665,6 +666,7 @@ class TestHelper {
   static async openTrove(contracts, {
     maxFeePercentage,
     extraLUSDAmount,
+    collatAmount,
     upperHint,
     lowerHint,
     ICR,
@@ -675,13 +677,12 @@ class TestHelper {
     else if (typeof extraLUSDAmount == 'string') extraLUSDAmount = this.toBN(extraLUSDAmount)
     if (!upperHint) upperHint = this.ZERO_ADDRESS
     if (!lowerHint) lowerHint = this.ZERO_ADDRESS
-
     const MIN_DEBT = (
       await this.getNetBorrowingAmount(contracts, await contracts.borrowerOperations.MIN_NET_DEBT())
     ).add(this.toBN(1)) // add 1 to avoid rounding issues
     const lusdAmount = MIN_DEBT.add(extraLUSDAmount)
 
-    if (!ICR && !extraParams.value) ICR = this.toBN(this.dec(15, 17)) // 150%
+    if (!ICR && !collatAmount) ICR = this.toBN(this.dec(15, 17)) // 150%
     else if (typeof ICR == 'string') ICR = this.toBN(ICR)
 
     const totalDebt = await this.getOpenTroveTotalDebt(contracts, lusdAmount)
@@ -689,17 +690,16 @@ class TestHelper {
 
     if (ICR) {
       const price = await contracts.priceFeedTestnet.getPrice()
-      extraParams.value = ICR.mul(totalDebt).div(price)
+      collatAmount = ICR.mul(totalDebt).div(price)
     }
-
-    const tx = await contracts.borrowerOperations.openTrove(maxFeePercentage, lusdAmount, upperHint, lowerHint, extraParams)
+    const tx = await contracts.borrowerOperations.openTrove(maxFeePercentage, collatAmount, lusdAmount, upperHint, lowerHint, extraParams)
 
     return {
       lusdAmount,
       netDebt,
       totalDebt,
       ICR,
-      collateral: extraParams.value,
+      collateral: collatAmount,
       tx
     }
   }
