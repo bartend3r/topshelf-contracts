@@ -376,7 +376,7 @@ library SafeMath {
     }
 }
 
-contract MultiRewards is ReentrancyGuard, Pausable {
+contract MultiRewards2 is ReentrancyGuard, Pausable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -389,25 +389,37 @@ contract MultiRewards is ReentrancyGuard, Pausable {
         uint256 rewardPerTokenStored;
         mapping(address => bool) rewardsDistributor;
     }
+
+    struct Deposit {
+        uint256 timestamp;
+        uint256 amount;
+    }
+
+    struct UserBalance {
+        uint256 total;
+        uint256 depositIndex;
+        Deposit[] deposits;
+    }
+
+    mapping (address => UserBalance) userBalances;
+
     IERC20 public stakingToken;
     mapping(address => Reward) public rewardData;
     address[] public rewardTokens;
     uint256 public constant rewardsDuration = 86400 * 7;
+    address public penaltyReceiver;
 
     // user -> reward token -> amount
     mapping(address => mapping(address => uint256)) public userRewardPerTokenPaid;
     mapping(address => mapping(address => uint256)) public rewards;
 
     uint256 private _totalSupply;
-    mapping(address => uint256) private _balances;
 
     /* ========== CONSTRUCTOR ========== */
 
-    constructor() public Owned(msg.sender) {}
-
-    function setStakingToken(IERC20 _stakingToken) external onlyOwner {
-        require(address(stakingToken) == address(0));
+    constructor(address _stakingToken, address _penaltyReceiver) public Owned(msg.sender) {
         stakingToken = _stakingToken;
+        penaltyReceiver = _penaltyReceiver;
     }
 
     function addReward(
@@ -433,7 +445,7 @@ contract MultiRewards is ReentrancyGuard, Pausable {
     }
 
     function balanceOf(address account) external view returns (uint256) {
-        return _balances[account];
+        return userBalances[account].total;
     }
 
     function lastTimeRewardApplicable(address _rewardsToken) public view returns (uint256) {
@@ -451,7 +463,7 @@ contract MultiRewards is ReentrancyGuard, Pausable {
     }
 
     function earned(address account, address _rewardsToken) public view returns (uint256) {
-        return _balances[account].mul(rewardPerToken(_rewardsToken).sub(userRewardPerTokenPaid[account][_rewardsToken])).div(1e18).add(rewards[account][_rewardsToken]);
+        return userBalances[account].total.mul(rewardPerToken(_rewardsToken).sub(userRewardPerTokenPaid[account][_rewardsToken])).div(1e18).add(rewards[account][_rewardsToken]);
     }
 
     function getRewardForDuration(address _rewardsToken) external view returns (uint256) {
@@ -466,17 +478,69 @@ contract MultiRewards is ReentrancyGuard, Pausable {
 
     function stake(uint256 amount) external nonReentrant notPaused updateReward(msg.sender) {
         require(amount > 0, "Cannot stake 0");
-        _totalSupply = _totalSupply.add(amount);
-        _balances[msg.sender] = _balances[msg.sender].add(amount);
         stakingToken.safeTransferFrom(msg.sender, address(this), amount);
+
+        // 0.5% penalty is applied upon deposit
+        uint256 penaltyAmount = amount.mul(5).div(1000);
+        stakingToken.safeTransfer(address(penaltyReceiver), penaltyAmount);
+        MultiRewards(penaltyReceiver).notifyRewardAmount(stakingToken, penaltyAmount);
+        amount = amount.sub(penaltyAmount);
+
+        _totalSupply = _totalSupply.add(amount);
+        UserBalance storage user = userBalances[msg.sender];
+        user.total = user.total.add(amount);
+        uint256 timestamp = block.timestamp / 86400 * 86400;
+        uint256 length = user.deposits.length;
+        if (length == 0 || user.deposits[length-1].timestamp < timestamp) {
+            user.deposits.push(Deposit({timestamp: timestamp, amount: amount}));
+        } else {
+            user.deposits[length-1].amount = user.deposits[length-1].amount.add(amount);
+        }
         emit Staked(msg.sender, amount);
     }
 
+    /// `amount` is the total to withdraw inclusive of any penalty amounts to be paid.
+    /// the final balance received may be up to 4% less than `amount` depending upon
+    /// how recently the caller deposited
     function withdraw(uint256 amount) public nonReentrant updateReward(msg.sender) {
         require(amount > 0, "Cannot withdraw 0");
         _totalSupply = _totalSupply.sub(amount);
-        _balances[msg.sender] = _balances[msg.sender].sub(amount);
-        stakingToken.safeTransfer(msg.sender, amount);
+
+        UserBalance storage user = userBalances[msg.sender];
+        user.total = user.total.sub(amount);
+
+        uint256 amountAfterPenalty = 0;
+        uint256 remaining = amount;
+        uint256 timestamp = block.timestamp / 86400 * 86400;
+        for (uint256 i = user.depositIndex; ; i++) {
+            Deposit storage dep = user.deposits[i];
+            uint256 weeklyAmount = dep.amount;
+            if (weeklyAmount > remaining) {
+                weeklyAmount = remaining;
+            }
+            uint256 weeksSinceDeposit = timestamp.sub(dep.timestamp).div(604800);
+            if (weeksSinceDeposit < 8) {
+                // for balances deposited less than 8 weeks ago, a withdrawal
+                // penalty is applied starting at 4% and decreasing by 0.5% every week
+                uint penaltyMultiplier = 1000 - (8 - weeksSinceDeposit) * 5;
+                amountAfterPenalty = amountAfterPenalty.add(weeklyAmount.mul(penaltyMultiplier).div(1000));
+            } else {
+                amountAfterPenalty = amountAfterPenalty.add(weeklyAmount);
+            }
+            remaining = remaining.sub(weeklyAmount);
+            dep.amount = dep.amount.sub(weeklyAmount);
+            if (remaining == 0) {
+                user.depositIndex = i;
+                break;
+            }
+        }
+
+        stakingToken.safeTransfer(msg.sender, amountAfterPenalty);
+        uint256 penaltyAmount = amount.sub(amountAfterPenalty);
+        if (penaltyAmount > 0) {
+            stakingToken.safeTransfer(address(penaltyReceiver), penaltyAmount);
+            MultiRewards(penaltyReceiver).notifyRewardAmount(stakingToken, penaltyAmount);
+        }
         emit Withdrawn(msg.sender, amount);
     }
 
@@ -493,7 +557,7 @@ contract MultiRewards is ReentrancyGuard, Pausable {
     }
 
     function exit() external {
-        withdraw(_balances[msg.sender]);
+        withdraw(userBalances[msg.sender].total);
         getReward();
     }
 
