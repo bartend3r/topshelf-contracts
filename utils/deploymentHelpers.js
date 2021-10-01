@@ -117,7 +117,8 @@ class DeploymentHelper {
       functionCaller,
       borrowerOperations,
       hintHelpers,
-      collateral
+      collateral,
+      flashLender
     }
     return coreContracts
   }
@@ -331,8 +332,6 @@ class DeploymentHelper {
       LQTYContracts.lqtyToken.address,
       LQTYContracts.lqtyStaking.address,
     )
-
-
 
     // set contracts in the Pools
     await contracts.stabilityPool.setAddresses(
