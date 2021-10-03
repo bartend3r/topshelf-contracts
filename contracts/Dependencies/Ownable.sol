@@ -16,8 +16,11 @@ pragma solidity 0.6.11;
  */
 contract Ownable {
     address private _owner;
+    address public nominatedOwner;
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event OwnerNominated(address newOwner);
+    event OwnerChanged(address oldOwner, address newOwner);
 
     /**
      * @dev Initializes the contract setting the deployer as the initial owner.
@@ -62,5 +65,17 @@ contract Ownable {
     function _renounceOwnership() internal {
         emit OwnershipTransferred(_owner, address(0));
         _owner = address(0);
+    }
+
+    function nominateNewOwner(address _owner) external onlyOwner {
+        nominatedOwner = _owner;
+        emit OwnerNominated(_owner);
+    }
+
+    function acceptOwnership() external {
+        require(msg.sender == nominatedOwner, "You must be nominated before you can accept ownership");
+        emit OwnerChanged(_owner, nominatedOwner);
+        _owner = nominatedOwner;
+        nominatedOwner = address(0);
     }
 }
