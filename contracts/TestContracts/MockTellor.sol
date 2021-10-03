@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity 0.6.11;
+import "hardhat/console.sol";
 
 
 contract MockTellor {
@@ -19,7 +20,7 @@ contract MockTellor {
         price = _price;
     }
 
-      function setDidRetrieve(bool _didRetrieve) external {
+    function setDidRetrieve(bool _didRetrieve) external {
         didRetrieve = _didRetrieve;
     }
 
@@ -27,7 +28,7 @@ contract MockTellor {
         updateTime = _updateTime;
     }
 
-      function setRevertRequest() external {
+    function setRevertRequest() external {
         revertRequest = !revertRequest;
     }
 
@@ -42,8 +43,9 @@ contract MockTellor {
         return 1;
     }
 
-    function retrieveData(uint256, uint256) external view returns (uint256) {
-        return price;
+    function getReferenceData(string memory base, string memory quote) external view returns (uint256, uint256, uint256) {
+        require(!revertRequest);
+        return (price, updateTime, updateTime);
     }
 
 
