@@ -7,7 +7,7 @@ import "../Dependencies/SafeMath.sol";
 import "../Dependencies/Ownable.sol";
 import "../Dependencies/CheckContract.sol";
 import "../Interfaces/ILQTYToken.sol";
-import "./Dependencies/SafeERC20.sol";
+import "../Dependencies/SafeERC20.sol";
 import "./Interfaces/ILPTokenWrapper.sol";
 import "./Interfaces/IUnipool.sol";
 import "../Dependencies/console.sol";
