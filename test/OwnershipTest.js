@@ -24,20 +24,24 @@ contract('All Liquity functions with onlyOwner modifier', async accounts => {
   let lqtyToken
   let lockupContractFactory
 
-  before(async () => {
+  beforeEach(async () => {
     contracts = await deploymentHelper.deployLiquityCore()
-    contracts.borrowerOperations = await BorrowerOperationsTester.new()
+    // contracts.borrowerOperations = await BorrowerOperationsTester.new()
     contracts = await deploymentHelper.deployLUSDToken(contracts)
     const LQTYContracts = await deploymentHelper.deployLQTYContracts(bountyAddress, lpRewardsAddress, multisig)
 
     lusdToken = contracts.lusdToken
+    collSurplusPool = contracts.collSurplusPool
     sortedTroves = contracts.sortedTroves
     troveManager = contracts.troveManager
     activePool = contracts.activePool
     stabilityPool = contracts.stabilityPool
     defaultPool = contracts.defaultPool
     borrowerOperations = contracts.borrowerOperations
-
+    flashLender = contracts.flashLender
+    collateral = contracts.collateral
+    priceFeed = contracts.priceFeedTestnet
+    gasPool = contracts.gasPool
     lqtyStaking = LQTYContracts.lqtyStaking
     communityIssuance = LQTYContracts.communityIssuance
     lqtyToken = LQTYContracts.lqtyToken
@@ -118,10 +122,23 @@ contract('All Liquity functions with onlyOwner modifier', async accounts => {
 
   describe('ActivePool', async accounts => {
     it("setAddresses(): reverts when called by non-owner, with wrong addresses, or twice", async () => {
-      const dumbContract = await GasPool.new()
-      let params = [borrowerOperations.address]
-      const moreParams = Array(3).fill(dumbContract.address)
-      params.push(...moreParams)
+      // need a properly set BO here for the collateral contract call within
+      borrowerOperations.setAddresses(
+        troveManager.address, 
+        activePool.address, 
+        defaultPool.address, 
+        stabilityPool.address, 
+        gasPool.address, 
+        collSurplusPool.address, 
+        priceFeed.address, 
+        sortedTroves.address, 
+        lusdToken.address, 
+        lqtyStaking.address, 
+        collateral.address)
+      // const dumbContract = await GasPool.new()
+      let params = [borrowerOperations.address, troveManager.address, stabilityPool.address, defaultPool.address, flashLender.address]
+      // const moreParams = Array(0).fill(dumbContract.address)
+      // params.push(...moreParams)
       await testSetAddresses(activePool, params)
     })
   })
@@ -166,7 +183,7 @@ contract('All Liquity functions with onlyOwner modifier', async accounts => {
       await th.assertRevert(communityIssuance.setAddresses(...params, { from: owner }))
     })
   })
-  // remove as multirewards replaces LQTYStaking and does not have setAddresses
+  // // remove as multirewards replaces LQTYStaking and does not have setAddresses
   // describe('LQTYStaking', async accounts => {
   //   it("setAddresses(): reverts when called by non-owner, with wrong addresses, or twice", async () => {
   //     await testSetAddresses(lqtyStaking, 5)

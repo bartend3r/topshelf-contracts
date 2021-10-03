@@ -23,6 +23,7 @@ contract ActivePool is Ownable, CheckContract, IActivePool {
 
     address public borrowerOperationsAddress;
     address public troveManagerAddress;
+    address public flashLenderAddress;
     address public stabilityPoolAddress;
     address public defaultPoolAddress;
     IERC20 public override collateralToken;
@@ -33,6 +34,9 @@ contract ActivePool is Ownable, CheckContract, IActivePool {
 
     event BorrowerOperationsAddressChanged(address _newBorrowerOperationsAddress);
     event TroveManagerAddressChanged(address _newTroveManagerAddress);
+    event StabilityPoolAddressChanged(address _newStabilityPoolAddress);
+    event DefaultPoolAddressChanged(address _newDefaultPoolAddress);
+    event FlashLenderrAddressChanged(address _newTroveManagerAddress);
     event ActivePoolLUSDDebtUpdated(uint _LUSDDebt);
     event ActivePoolETHBalanceUpdated(uint _ETH);
 
@@ -42,7 +46,8 @@ contract ActivePool is Ownable, CheckContract, IActivePool {
         address _borrowerOperationsAddress,
         address _troveManagerAddress,
         address _stabilityPoolAddress,
-        address _defaultPoolAddress
+        address _defaultPoolAddress,
+        address _flashLenderAddress
     )
         external
         onlyOwner
@@ -51,17 +56,21 @@ contract ActivePool is Ownable, CheckContract, IActivePool {
         checkContract(_troveManagerAddress);
         checkContract(_stabilityPoolAddress);
         checkContract(_defaultPoolAddress);
+        checkContract(_flashLenderAddress);
 
         borrowerOperationsAddress = _borrowerOperationsAddress;
         troveManagerAddress = _troveManagerAddress;
         stabilityPoolAddress = _stabilityPoolAddress;
         defaultPoolAddress = _defaultPoolAddress;
+        flashLenderAddress = _flashLenderAddress;
         collateralToken = IBorrowerOperations(_borrowerOperationsAddress).collateralToken();
+        collateralToken.approve(_flashLenderAddress, uint(-1));
 
         emit BorrowerOperationsAddressChanged(_borrowerOperationsAddress);
         emit TroveManagerAddressChanged(_troveManagerAddress);
         emit StabilityPoolAddressChanged(_stabilityPoolAddress);
         emit DefaultPoolAddressChanged(_defaultPoolAddress);
+        emit FlashLenderrAddressChanged(_flashLenderAddress);
 
         _renounceOwnership();
     }
