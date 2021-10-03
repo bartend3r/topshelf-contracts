@@ -34,6 +34,9 @@ contract ActivePool is Ownable, CheckContract, IActivePool {
 
     event BorrowerOperationsAddressChanged(address _newBorrowerOperationsAddress);
     event TroveManagerAddressChanged(address _newTroveManagerAddress);
+    event StabilityPoolAddressChanged(address _newStabilityPoolAddress);
+    event DefaultPoolAddressChanged(address _newDefaultPoolAddress);
+    event FlashLenderrAddressChanged(address _newTroveManagerAddress);
     event ActivePoolLUSDDebtUpdated(uint _LUSDDebt);
     event ActivePoolETHBalanceUpdated(uint _ETH);
 
@@ -53,6 +56,7 @@ contract ActivePool is Ownable, CheckContract, IActivePool {
         checkContract(_troveManagerAddress);
         checkContract(_stabilityPoolAddress);
         checkContract(_defaultPoolAddress);
+        checkContract(_flashLenderAddress);
 
         borrowerOperationsAddress = _borrowerOperationsAddress;
         troveManagerAddress = _troveManagerAddress;
@@ -66,6 +70,7 @@ contract ActivePool is Ownable, CheckContract, IActivePool {
         emit TroveManagerAddressChanged(_troveManagerAddress);
         emit StabilityPoolAddressChanged(_stabilityPoolAddress);
         emit DefaultPoolAddressChanged(_defaultPoolAddress);
+        emit FlashLenderrAddressChanged(_flashLenderAddress);
 
         _renounceOwnership();
     }
