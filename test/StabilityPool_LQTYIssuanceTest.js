@@ -55,8 +55,9 @@ contract('StabilityPool - LQTY Rewards', async accounts => {
       contracts.lusdToken = await LUSDToken.new(
         contracts.troveManager.address,
         contracts.stabilityPool.address,
-        contracts.borrowerOperations.address
-      )
+        contracts.borrowerOperations.address,
+        contracts.flashLender.address
+      )      
       // this adds too much time to the process and as a result tests fail. 
       // to make this work this needs to run before the deployment below.
       let foo = [

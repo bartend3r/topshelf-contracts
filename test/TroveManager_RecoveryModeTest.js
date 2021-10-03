@@ -59,7 +59,8 @@ contract('TroveManager - in Recovery Mode', async accounts => {
     contracts.lusdToken = await LUSDToken.new(
       contracts.troveManager.address,
       contracts.stabilityPool.address,
-      contracts.borrowerOperations.address
+      contracts.borrowerOperations.address,
+      contracts.flashLender.address
     )
     const LQTYContracts = await deploymentHelper.deployLQTYContracts(bountyAddress, lpRewardsAddress, multisig)
 

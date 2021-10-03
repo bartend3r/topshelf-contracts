@@ -89,6 +89,7 @@ class DeploymentHelper {
       flashLender.address
     )
     const collateral = await MockCollateral.new("Collateral", "CLT")
+
     LUSDToken.setAsDeployed(lusdToken)
     DefaultPool.setAsDeployed(defaultPool)
     PriceFeedTestnet.setAsDeployed(priceFeedTestnet)
@@ -141,10 +142,12 @@ class DeploymentHelper {
     testerContracts.troveManager = await TroveManagerTester.new()
     testerContracts.functionCaller = await FunctionCaller.new()
     testerContracts.hintHelpers = await HintHelpers.new()
+    testerContracts.flashLender = await FlashLender.new()
     testerContracts.lusdToken =  await LUSDTokenTester.new(
       testerContracts.troveManager.address,
       testerContracts.stabilityPool.address,
-      testerContracts.borrowerOperations.address
+      testerContracts.borrowerOperations.address,
+      testerContracts.flashLender.address,
     )
     testerContracts.collateral = await MockCollateral.new("Collateral", "CLT")
     return testerContracts

@@ -60,13 +60,13 @@ contract('StabilityPool', async accounts => {
     beforeEach(async () => {
       contracts = await deploymentHelper.deployLiquityCore()
       contracts.troveManager = await TroveManagerTester.new()
+      const LQTYContracts = await deploymentHelper.deployLQTYContracts(bountyAddress, lpRewardsAddress, multisig)
       contracts.lusdToken = await LUSDToken.new(
         contracts.troveManager.address,
         contracts.stabilityPool.address,
-        contracts.borrowerOperations.address
+        contracts.borrowerOperations.address,
+        contracts.flashLender.address
       )
-      const LQTYContracts = await deploymentHelper.deployLQTYContracts(bountyAddress, lpRewardsAddress, multisig)
-
       priceFeed = contracts.priceFeedTestnet
       lusdToken = contracts.lusdToken
       sortedTroves = contracts.sortedTroves
