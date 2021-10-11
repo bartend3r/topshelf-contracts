@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity 0.6.11;
-import "hardhat/console.sol";
+import "../Dependencies/console.sol";
 
 
 contract MockTellor {
@@ -32,7 +32,7 @@ contract MockTellor {
         revertRequest = !revertRequest;
     }
 
-    // --- Mock data reporting functions --- 
+    // --- Mock data reporting functions ---
 
     function getTimestampbyRequestIDandIndex(uint, uint) external view returns (uint) {
         return updateTime;
