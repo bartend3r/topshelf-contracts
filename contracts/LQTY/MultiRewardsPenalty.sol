@@ -7,6 +7,8 @@ import "../Dependencies/ReentrancyGuard.sol";
 import "../Dependencies/SafeERC20.sol";
 import "../Dependencies/SafeMath.sol";
 import "../Dependencies/Pausable.sol";
+import "../Interfaces/ILQTYToken.sol";
+import "../Interfaces/IUniswapV2Pair.sol";
 
 contract MultiRewards2 is ReentrancyGuard, Pausable {
     using SafeMath for uint256;
@@ -35,11 +37,18 @@ contract MultiRewards2 is ReentrancyGuard, Pausable {
 
     mapping (address => UserBalance) userBalances;
 
-    IERC20 public stakingToken;
+    IUniswapV2Pair public stakingToken;
+    IERC20 public rewardToken;
+    ILQTYToken public burnToken;
+
     mapping(address => Reward) public rewardData;
     address[] public rewardTokens;
     uint256 public constant rewardsDuration = 86400 * 7;
+
+    uint256[65535] penaltyAmounts;
     address public penaltyReceiver;
+    uint256 public penaltyIndex;
+    uint256 public startTime;
 
     // user -> reward token -> amount
     mapping(address => mapping(address => uint256)) public userRewardPerTokenPaid;
@@ -49,9 +58,21 @@ contract MultiRewards2 is ReentrancyGuard, Pausable {
 
     /* ========== CONSTRUCTOR ========== */
 
-    constructor(IERC20 _stakingToken, address _penaltyReceiver) public Ownable() {
+    constructor(
+        IUniswapV2Pair _stakingToken,
+        IERC20 _rewardToken,
+        ILQTYToken _burnToken,
+        address _penaltyReceiver
+    )
+        public
+        Ownable()
+    {
         stakingToken = _stakingToken;
+        rewardToken = _rewardToken;
+        burnToken = _burnToken;
+
         penaltyReceiver = _penaltyReceiver;
+        startTime = block.timestamp;
     }
 
     function addReward(
@@ -108,14 +129,41 @@ contract MultiRewards2 is ReentrancyGuard, Pausable {
         rewardData[_rewardsToken].rewardsDistributor[_rewardsDistributor] = _isDistributor;
     }
 
+    function addPenaltyAmount(uint256 _amount) internal {
+        uint256 idx = block.timestamp.sub(startTime).div(604800);
+        if (penaltyIndex < idx) {
+            uint amount;
+            while (penaltyIndex < idx) {
+                amount = amount.add(penaltyAmounts[penaltyIndex]);
+                penaltyIndex++;
+            }
+            if (amount > 0) {
+                // withdraw LP position
+                stakingToken.transfer(address(stakingToken), amount);
+                stakingToken.burn(address(this));
+
+                // burn the LIQR withdrawn from the LP position
+                amount = burnToken.balanceOf(address(this));
+                burnToken.burn(amount);
+
+                // add the reward token to the LIQR staking contract
+                amount = rewardToken.balanceOf(address(this));
+                rewardToken.safeTransfer(penaltyReceiver, amount);
+                MultiRewards2(penaltyReceiver).notifyRewardAmount(address(rewardToken), amount);
+            }
+        }
+        // hold penalty tokens for 8 weeks
+        idx = idx.add(8);
+        penaltyAmounts[idx] = penaltyAmounts[idx].add(_amount);
+    }
+
     function stake(uint256 amount) external nonReentrant notPaused updateReward(msg.sender) {
         require(amount > 0, "Cannot stake 0");
-        stakingToken.safeTransferFrom(msg.sender, address(this), amount);
+        stakingToken.transferFrom(msg.sender, address(this), amount);
 
-        // 0.5% penalty is applied upon deposit
-        uint256 penaltyAmount = amount.mul(5).div(1000);
-        stakingToken.safeTransfer(address(penaltyReceiver), penaltyAmount);
-        MultiRewards2(penaltyReceiver).notifyRewardAmount(address(stakingToken), penaltyAmount);
+        // 1% penalty is applied upon deposit
+        uint256 penaltyAmount = amount.div(100);
+        addPenaltyAmount(penaltyAmount);
         amount = amount.sub(penaltyAmount);
 
         _totalSupply = _totalSupply.add(amount);
@@ -167,11 +215,10 @@ contract MultiRewards2 is ReentrancyGuard, Pausable {
             }
         }
 
-        stakingToken.safeTransfer(msg.sender, amountAfterPenalty);
+        stakingToken.transfer(msg.sender, amountAfterPenalty);
         uint256 penaltyAmount = amount.sub(amountAfterPenalty);
         if (penaltyAmount > 0) {
-            stakingToken.safeTransfer(address(penaltyReceiver), penaltyAmount);
-            MultiRewards2(penaltyReceiver).notifyRewardAmount(address(stakingToken), penaltyAmount);
+            addPenaltyAmount(penaltyAmount);
         }
         emit Withdrawn(msg.sender, amount);
     }
