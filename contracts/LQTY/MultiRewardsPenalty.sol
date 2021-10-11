@@ -35,20 +35,27 @@ contract MultiRewards2 is ReentrancyGuard, Pausable {
         Deposit[] deposits;
     }
 
-    mapping (address => UserBalance) userBalances;
-
+    // token to stake - must be a UniV2 LP token
     IUniswapV2Pair public stakingToken;
-    IERC20 public rewardToken;
+    // token within `stakingToken` that is forwarded to the single-sided `MultiRewards` staker
+    IERC20 public wantToken;
+    // token within `stakingToken` that is burnt
     ILQTYToken public burnToken;
 
+    mapping (address => UserBalance) userBalances;
     mapping(address => Reward) public rewardData;
+
     address[] public rewardTokens;
     uint256 public constant rewardsDuration = 86400 * 7;
 
+    // each index is the total amount collected over 1 week
     uint256[65535] penaltyAmounts;
-    address public penaltyReceiver;
-    uint256 public penaltyIndex;
+    // the current week is calculated from `block.timestamp - startTime`
     uint256 public startTime;
+    // active index for `penaltyAmounts`
+    uint256 public penaltyIndex;
+    // address of the contract for single-sided staking of `wantToken`
+    address public penaltyReceiver;
 
     // user -> reward token -> amount
     mapping(address => mapping(address => uint256)) public userRewardPerTokenPaid;
@@ -60,7 +67,7 @@ contract MultiRewards2 is ReentrancyGuard, Pausable {
 
     constructor(
         IUniswapV2Pair _stakingToken,
-        IERC20 _rewardToken,
+        IERC20 _wantToken,
         ILQTYToken _burnToken,
         address _penaltyReceiver
     )
@@ -68,7 +75,7 @@ contract MultiRewards2 is ReentrancyGuard, Pausable {
         Ownable()
     {
         stakingToken = _stakingToken;
-        rewardToken = _rewardToken;
+        wantToken = _wantToken;
         burnToken = _burnToken;
 
         penaltyReceiver = _penaltyReceiver;
@@ -147,9 +154,9 @@ contract MultiRewards2 is ReentrancyGuard, Pausable {
                 burnToken.burn(amount);
 
                 // add the reward token to the LIQR staking contract
-                amount = rewardToken.balanceOf(address(this));
-                rewardToken.safeTransfer(penaltyReceiver, amount);
-                MultiRewards2(penaltyReceiver).notifyRewardAmount(address(rewardToken), amount);
+                amount = wantToken.balanceOf(address(this));
+                wantToken.safeTransfer(penaltyReceiver, amount);
+                MultiRewards2(penaltyReceiver).notifyRewardAmount(address(wantToken), amount);
             }
         }
         // hold penalty tokens for 8 weeks
