@@ -292,6 +292,12 @@ contract LQTYToken is CheckContract, ILQTYToken {
         emit Transfer(address(0), account, amount);
     }
 
+    function burn(uint256 amount) external override {
+        _totalSupply = _totalSupply.sub(amount);
+        _balances[msg.sender] = _balances[msg.sender].sub(amount);
+        emit Transfer(msg.sender, address(0), amount);
+    }
+
     function _approve(address owner, address spender, uint256 amount) internal {
         require(owner != address(0), "ERC20: approve from the zero address");
         require(spender != address(0), "ERC20: approve to the zero address");
