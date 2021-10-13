@@ -4,7 +4,7 @@ contract('Deployment script - Sets correct contract addresses dependencies after
   const [owner] = accounts;
 
   const [bountyAddress, lpRewardsAddress, multisig] = accounts.slice(997, 1000)
-  
+
   let priceFeed
   let lusdToken
   let sortedTroves
@@ -310,14 +310,6 @@ contract('Deployment script - Sets correct contract addresses dependencies after
 
     const recordedcommunityIssuanceAddress = await lqtyToken.communityIssuanceAddress()
     assert.equal(communityIssuanceAddress, recordedcommunityIssuanceAddress)
-  })
-
-  // Sets LQTYStaking in LQTYToken
-  it('Sets the correct LQTYStaking address in LQTYToken', async () => {
-    const lqtyStakingAddress = lqtyStaking.address
-
-    const recordedLQTYStakingAddress =  await lqtyToken.lqtyStakingAddress()
-    assert.equal(lqtyStakingAddress, recordedLQTYStakingAddress)
   })
 
   // Sets LCF in LQTYToken
