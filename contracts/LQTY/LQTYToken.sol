@@ -89,7 +89,6 @@ contract LQTYToken is CheckContract, ILQTYToken {
     address public immutable multisigAddress;
 
     address public immutable communityIssuanceAddress;
-    address public immutable lqtyStakingAddress;
 
     uint internal immutable lpRewardsEntitlement;
 
@@ -98,7 +97,6 @@ contract LQTYToken is CheckContract, ILQTYToken {
     // --- Events ---
 
     event CommunityIssuanceAddressSet(address _communityIssuanceAddress);
-    event LQTYStakingAddressSet(address _lqtyStakingAddress);
     event LockupContractFactoryAddressSet(address _lockupContractFactoryAddress);
 
     // --- Functions ---
@@ -106,7 +104,6 @@ contract LQTYToken is CheckContract, ILQTYToken {
     constructor
     (
         address _communityIssuanceAddress,
-        address _lqtyStakingAddress,
         address _lockupFactoryAddress,
         address _bountyAddress,
         address _lpRewardsAddress,
@@ -115,14 +112,12 @@ contract LQTYToken is CheckContract, ILQTYToken {
         public
     {
         checkContract(_communityIssuanceAddress);
-        checkContract(_lqtyStakingAddress);
         checkContract(_lockupFactoryAddress);
 
         multisigAddress = _multisigAddress;
         deploymentStartTime  = block.timestamp;
 
         communityIssuanceAddress = _communityIssuanceAddress;
-        lqtyStakingAddress = _lqtyStakingAddress;
         lockupContractFactory = ILockupContractFactory(_lockupFactoryAddress);
 
         bytes32 hashedName = keccak256(bytes(_NAME));
@@ -190,15 +185,11 @@ contract LQTYToken is CheckContract, ILQTYToken {
     }
 
     function approve(address spender, uint256 amount) external override returns (bool) {
-        if (_isFirstYear()) { _requireCallerIsNotMultisig(); }
-
         _approve(msg.sender, spender, amount);
         return true;
     }
 
     function transferFrom(address sender, address recipient, uint256 amount) external override returns (bool) {
-        if (_isFirstYear()) { _requireSenderIsNotMultisig(sender); }
-
         _requireValidRecipient(recipient);
 
         _transfer(sender, recipient, amount);
@@ -207,23 +198,13 @@ contract LQTYToken is CheckContract, ILQTYToken {
     }
 
     function increaseAllowance(address spender, uint256 addedValue) external override returns (bool) {
-        if (_isFirstYear()) { _requireCallerIsNotMultisig(); }
-
         _approve(msg.sender, spender, _allowances[msg.sender][spender].add(addedValue));
         return true;
     }
 
     function decreaseAllowance(address spender, uint256 subtractedValue) external override returns (bool) {
-        if (_isFirstYear()) { _requireCallerIsNotMultisig(); }
-
         _approve(msg.sender, spender, _allowances[msg.sender][spender].sub(subtractedValue, "ERC20: decreased allowance below zero"));
         return true;
-    }
-
-    function sendToLQTYStaking(address _sender, uint256 _amount) external override {
-        _requireCallerIsLQTYStaking();
-        if (_isFirstYear()) { _requireSenderIsNotMultisig(_sender); }  // Prevent the multisig from staking LQTY
-        _transfer(_sender, lqtyStakingAddress, _amount);
     }
 
     // --- EIP 2612 functionality ---
@@ -326,7 +307,6 @@ contract LQTYToken is CheckContract, ILQTYToken {
         );
         require(
             _recipient != communityIssuanceAddress,
-            // _recipient != lqtyStakingAddress,
             "LQTY: Cannot transfer tokens directly to the community issuance contract"
         );
     }
@@ -336,16 +316,8 @@ contract LQTYToken is CheckContract, ILQTYToken {
         "LQTYToken: recipient must be a LockupContract registered in the Factory");
     }
 
-    function _requireSenderIsNotMultisig(address _sender) internal view {
-        require(_sender != multisigAddress, "LQTYToken: sender must not be the multisig");
-    }
-
     function _requireCallerIsNotMultisig() internal view {
         require(!_callerIsMultisig(), "LQTYToken: caller must not be the multisig");
-    }
-
-    function _requireCallerIsLQTYStaking() internal view {
-         require(msg.sender == lqtyStakingAddress, "LQTYToken: caller must be the LQTYStaking contract");
     }
 
     // --- Optional functions ---
