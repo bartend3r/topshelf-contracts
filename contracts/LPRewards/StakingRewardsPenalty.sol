@@ -8,20 +8,18 @@ import "../Dependencies/SafeERC20.sol";
 import "../Dependencies/SafeMath.sol";
 import "../Dependencies/Pausable.sol";
 import "../Interfaces/IUniswapV2Pair.sol";
+import "../Interfaces/IMultiRewards.sol";
 
-contract MultiRewards2 is ReentrancyGuard, Pausable {
+contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
     /* ========== STATE VARIABLES ========== */
 
-    struct Reward {
-        uint256 periodFinish;
-        uint256 rewardRate;
-        uint256 lastUpdateTime;
-        uint256 rewardPerTokenStored;
-        mapping(address => bool) rewardsDistributor;
-    }
+    uint256 public periodFinish = 0;
+    uint256 public rewardRate = 0;
+    uint256 public lastUpdateTime;
+    uint256 public rewardPerTokenStored;
 
     struct Deposit {
         uint256 timestamp;
@@ -34,15 +32,15 @@ contract MultiRewards2 is ReentrancyGuard, Pausable {
         Deposit[] deposits;
     }
 
+    IERC20 public rewardsToken;
     // token to stake - must be a UniV2 LP token
     IUniswapV2Pair public stakingToken;
-    // token within `stakingToken` that is forwarded to the single-sided `MultiRewards` staker
+    // token within `stakingToken` that is forwarded to `MultiRewards`
     IERC20 public wantToken;
     // token within `stakingToken` that is burnt
     IERC20 public burnToken;
 
     mapping (address => UserBalance) userBalances;
-    mapping(address => Reward) public rewardData;
 
     address[] public rewardTokens;
     uint256 public constant rewardsDuration = 86400 * 7;
@@ -56,15 +54,15 @@ contract MultiRewards2 is ReentrancyGuard, Pausable {
     // address of the contract for single-sided staking of `wantToken`
     address public penaltyReceiver;
 
-    // user -> reward token -> amount
-    mapping(address => mapping(address => uint256)) public userRewardPerTokenPaid;
-    mapping(address => mapping(address => uint256)) public rewards;
+    mapping(address => uint256) public userRewardPerTokenPaid;
+    mapping(address => uint256) public rewards;
 
     uint256 private _totalSupply;
 
     /* ========== CONSTRUCTOR ========== */
 
     constructor(
+        IERC20 _rewardsToken,
         IUniswapV2Pair _stakingToken,
         IERC20 _wantToken,
         IERC20 _burnToken,
@@ -73,28 +71,13 @@ contract MultiRewards2 is ReentrancyGuard, Pausable {
         public
         Ownable()
     {
+        rewardsToken = _rewardsToken;
         stakingToken = _stakingToken;
         wantToken = _wantToken;
         burnToken = _burnToken;
 
         penaltyReceiver = _penaltyReceiver;
         startTime = block.timestamp;
-    }
-
-    function addReward(
-        address _rewardsToken,
-        address[] calldata _rewardsDistributor
-    )
-        external
-        onlyOwner
-    {
-        for (uint i = 0; i < rewardTokens.length; i++) {
-            require(rewardTokens[i] != _rewardsToken);
-        }
-        rewardTokens.push(_rewardsToken);
-        for (uint i = 0; i < _rewardsDistributor.length; i++) {
-            rewardData[_rewardsToken].rewardsDistributor[_rewardsDistributor[i]] = true;
-        }
     }
 
     /* ========== VIEWS ========== */
@@ -107,33 +90,29 @@ contract MultiRewards2 is ReentrancyGuard, Pausable {
         return userBalances[account].total;
     }
 
-    function lastTimeRewardApplicable(address _rewardsToken) public view returns (uint256) {
-        return Math.min(block.timestamp, rewardData[_rewardsToken].periodFinish);
+    function lastTimeRewardApplicable() public view returns (uint256) {
+        return Math.min(block.timestamp, periodFinish);
     }
 
-    function rewardPerToken(address _rewardsToken) public view returns (uint256) {
+    function rewardPerToken() public view returns (uint256) {
         if (_totalSupply == 0) {
-            return rewardData[_rewardsToken].rewardPerTokenStored;
+            return rewardPerTokenStored;
         }
         return
-            rewardData[_rewardsToken].rewardPerTokenStored.add(
-                lastTimeRewardApplicable(_rewardsToken).sub(rewardData[_rewardsToken].lastUpdateTime).mul(rewardData[_rewardsToken].rewardRate).mul(1e18).div(_totalSupply)
+            rewardPerTokenStored.add(
+                lastTimeRewardApplicable().sub(lastUpdateTime).mul(rewardRate).mul(1e18).div(_totalSupply)
             );
     }
 
-    function earned(address account, address _rewardsToken) public view returns (uint256) {
-        return userBalances[account].total.mul(rewardPerToken(_rewardsToken).sub(userRewardPerTokenPaid[account][_rewardsToken])).div(1e18).add(rewards[account][_rewardsToken]);
+    function earned(address account) public view returns (uint256) {
+        return userBalances[account].total.mul(rewardPerToken().sub(userRewardPerTokenPaid[account])).div(1e18).add(rewards[account]);
     }
 
-    function getRewardForDuration(address _rewardsToken) external view returns (uint256) {
-        return rewardData[_rewardsToken].rewardRate.mul(rewardsDuration);
+    function getRewardForDuration() external view returns (uint256) {
+        return rewardRate.mul(rewardsDuration);
     }
 
     /* ========== MUTATIVE FUNCTIONS ========== */
-
-    function setRewardsDistributor(address _rewardsToken, address _rewardsDistributor, bool _isDistributor) external onlyOwner {
-        rewardData[_rewardsToken].rewardsDistributor[_rewardsDistributor] = _isDistributor;
-    }
 
     function addPenaltyAmount(uint256 _amount) internal {
         uint256 idx = block.timestamp.sub(startTime).div(604800);
@@ -155,7 +134,7 @@ contract MultiRewards2 is ReentrancyGuard, Pausable {
                 // add the reward token to the LIQR staking contract
                 amount = wantToken.balanceOf(address(this));
                 wantToken.safeTransfer(penaltyReceiver, amount);
-                MultiRewards2(penaltyReceiver).notifyRewardAmount(address(wantToken), amount);
+                IMultiRewards(penaltyReceiver).notifyRewardAmount(address(wantToken), amount);
             }
         }
         // hold penalty tokens for 8 weeks
@@ -230,14 +209,11 @@ contract MultiRewards2 is ReentrancyGuard, Pausable {
     }
 
     function getReward() public nonReentrant updateReward(msg.sender) {
-        for (uint i; i < rewardTokens.length; i++) {
-            address _rewardsToken = rewardTokens[i];
-            uint256 reward = rewards[msg.sender][_rewardsToken];
-            if (reward > 0) {
-                rewards[msg.sender][_rewardsToken] = 0;
-                IERC20(_rewardsToken).safeTransfer(msg.sender, reward);
-                emit RewardPaid(msg.sender, _rewardsToken, reward);
-            }
+        uint256 reward = rewards[msg.sender];
+        if (reward > 0) {
+            rewards[msg.sender] = 0;
+            rewardsToken.safeTransfer(msg.sender, reward);
+            emit RewardPaid(msg.sender, reward);
         }
     }
 
@@ -248,26 +224,27 @@ contract MultiRewards2 is ReentrancyGuard, Pausable {
 
     /* ========== RESTRICTED FUNCTIONS ========== */
 
-    function notifyRewardAmount(address _rewardsToken, uint256 reward) external updateReward(address(0)) {
-        require(rewardData[_rewardsToken].rewardsDistributor[msg.sender], "Invalid caller");
+    function notifyRewardAmount(uint256 reward) external updateReward(address(0)) {
+        // handle the transfer of reward tokens via `transferFrom` to reduce the number
+        // of transactions required and ensure correctness of the reward amount
+        rewardsToken.transferFrom(msg.sender, address(this), reward);
 
-        if (block.timestamp >= rewardData[_rewardsToken].periodFinish) {
-            rewardData[_rewardsToken].rewardRate = reward.div(rewardsDuration);
+        if (block.timestamp >= periodFinish) {
+            rewardRate = reward.div(rewardsDuration);
         } else {
-            uint256 remaining = rewardData[_rewardsToken].periodFinish.sub(block.timestamp);
-            uint256 leftover = remaining.mul(rewardData[_rewardsToken].rewardRate);
-            rewardData[_rewardsToken].rewardRate = reward.add(leftover).div(rewardsDuration);
+            uint256 remaining = periodFinish.sub(block.timestamp);
+            uint256 leftover = remaining.mul(rewardRate);
+            rewardRate = reward.add(leftover).div(rewardsDuration);
         }
 
-        rewardData[_rewardsToken].lastUpdateTime = block.timestamp;
-        rewardData[_rewardsToken].periodFinish = block.timestamp.add(rewardsDuration);
+        lastUpdateTime = block.timestamp;
+        periodFinish = block.timestamp.add(rewardsDuration);
         emit RewardAdded(reward);
     }
 
     // Added to support recovering LP Rewards from other systems such as BAL to be distributed to holders
     function recoverERC20(address tokenAddress, uint256 tokenAmount) external onlyOwner {
-        require(tokenAddress != address(stakingToken), "Cannot withdraw staking token");
-        require(rewardData[tokenAddress].lastUpdateTime == 0, "Cannot withdraw reward token");
+        require(tokenAddress != address(stakingToken), "Cannot withdraw the staking token");
         IERC20(tokenAddress).safeTransfer(owner(), tokenAmount);
         emit Recovered(tokenAddress, tokenAmount);
     }
@@ -275,14 +252,11 @@ contract MultiRewards2 is ReentrancyGuard, Pausable {
     /* ========== MODIFIERS ========== */
 
     modifier updateReward(address account) {
-        for (uint i; i < rewardTokens.length; i++) {
-            address token = rewardTokens[i];
-            rewardData[token].rewardPerTokenStored = rewardPerToken(token);
-            rewardData[token].lastUpdateTime = lastTimeRewardApplicable(token);
-            if (account != address(0)) {
-                rewards[account][token] = earned(account, token);
-                userRewardPerTokenPaid[account][token] = rewardData[token].rewardPerTokenStored;
-            }
+        rewardPerTokenStored = rewardPerToken();
+        lastUpdateTime = lastTimeRewardApplicable();
+        if (account != address(0)) {
+            rewards[account] = earned(account);
+            userRewardPerTokenPaid[account] = rewardPerTokenStored;
         }
         _;
     }
@@ -292,7 +266,6 @@ contract MultiRewards2 is ReentrancyGuard, Pausable {
     event RewardAdded(uint256 reward);
     event Staked(address indexed user, uint256 amount);
     event Withdrawn(address indexed user, uint256 amount);
-    event RewardPaid(address indexed user, address indexed rewardsToken, uint256 reward);
-    event RewardsDurationUpdated(address token, uint256 newDuration);
+    event RewardPaid(address indexed user, uint256 reward);
     event Recovered(address token, uint256 amount);
 }
