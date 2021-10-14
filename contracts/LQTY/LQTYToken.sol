@@ -111,9 +111,6 @@ contract LQTYToken is ILQTYToken {
     }
 
     function transfer(address recipient, uint256 amount) external override returns (bool) {
-        _requireValidRecipient(recipient);
-
-        // Otherwise, standard transfer functionality
         _transfer(msg.sender, recipient, amount);
         return true;
     }
@@ -128,8 +125,6 @@ contract LQTYToken is ILQTYToken {
     }
 
     function transferFrom(address sender, address recipient, uint256 amount) external override returns (bool) {
-        _requireValidRecipient(recipient);
-
         _transfer(sender, recipient, amount);
         _approve(sender, msg.sender, _allowances[sender][msg.sender].sub(amount, "ERC20: transfer amount exceeds allowance"));
         return true;
@@ -197,6 +192,7 @@ contract LQTYToken is ILQTYToken {
     function _transfer(address sender, address recipient, uint256 amount) internal {
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
+        require(recipient != address(this), "ERC20: transfer to the token address");
 
         _balances[sender] = _balances[sender].sub(amount, "ERC20: transfer amount exceeds balance");
         _balances[recipient] = _balances[recipient].add(amount);
@@ -223,16 +219,6 @@ contract LQTYToken is ILQTYToken {
 
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
-    }
-
-    // --- 'require' functions ---
-
-    function _requireValidRecipient(address _recipient) internal view {
-        require(
-            _recipient != address(0) &&
-            _recipient != address(this),
-            "LQTY: Cannot transfer tokens directly to the LQTY token contract or the zero address"
-        );
     }
 
     // --- Optional functions ---
