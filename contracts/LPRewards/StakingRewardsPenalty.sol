@@ -1,6 +1,5 @@
 pragma solidity 0.6.11;
 
-import "../Dependencies/Address.sol";
 import "../Dependencies/IERC20.sol";
 import "../Dependencies/Math.sol";
 import "../Dependencies/ReentrancyGuard.sol";
@@ -9,6 +8,7 @@ import "../Dependencies/SafeMath.sol";
 import "../Dependencies/Pausable.sol";
 import "../Interfaces/IUniswapV2Pair.sol";
 import "../Interfaces/IMultiRewards.sol";
+import "../Interfaces/ICommunityIssuance.sol";
 
 contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
     using SafeMath for uint256;
@@ -32,6 +32,7 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
         Deposit[] deposits;
     }
 
+    // token being rewarded to stakers
     IERC20 public rewardsToken;
     // token to stake - must be a UniV2 LP token
     IUniswapV2Pair public stakingToken;
@@ -53,6 +54,8 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
     uint256 public penaltyIndex;
     // address of the contract for single-sided staking of `wantToken`
     address public penaltyReceiver;
+    // address of the CommunityIssuance contract that releases rewards to this contract
+    ICommunityIssuance public rewardIssuer;
 
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
@@ -66,7 +69,8 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
         IUniswapV2Pair _stakingToken,
         IERC20 _wantToken,
         IERC20 _burnToken,
-        address _penaltyReceiver
+        address _penaltyReceiver,
+        ICommunityIssuance _rewardIssuer
     )
         public
         Ownable()
@@ -77,6 +81,7 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
         burnToken = _burnToken;
 
         penaltyReceiver = _penaltyReceiver;
+        rewardIssuer = _rewardIssuer;
         startTime = block.timestamp;
     }
 
@@ -224,24 +229,6 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
 
     /* ========== RESTRICTED FUNCTIONS ========== */
 
-    function notifyRewardAmount(uint256 reward) external updateReward(address(0)) {
-        // handle the transfer of reward tokens via `transferFrom` to reduce the number
-        // of transactions required and ensure correctness of the reward amount
-        rewardsToken.transferFrom(msg.sender, address(this), reward);
-
-        if (block.timestamp >= periodFinish) {
-            rewardRate = reward.div(rewardsDuration);
-        } else {
-            uint256 remaining = periodFinish.sub(block.timestamp);
-            uint256 leftover = remaining.mul(rewardRate);
-            rewardRate = reward.add(leftover).div(rewardsDuration);
-        }
-
-        lastUpdateTime = block.timestamp;
-        periodFinish = block.timestamp.add(rewardsDuration);
-        emit RewardAdded(reward);
-    }
-
     // Added to support recovering LP Rewards from other systems such as BAL to be distributed to holders
     function recoverERC20(address tokenAddress, uint256 tokenAmount) external onlyOwner {
         require(tokenAddress != address(stakingToken), "Cannot withdraw the staking token");
@@ -259,6 +246,15 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
             userRewardPerTokenPaid[account] = rewardPerTokenStored;
         }
         _;
+        if (lastUpdateTime < block.timestamp) {
+            // once the reward period has finished, call the issuer to receive new rewards
+            uint256 issuance = rewardIssuer.issueLQTY();
+            rewardIssuer.sendLQTY(address(this), issuance);
+            rewardRate = issuance.div(rewardsDuration);
+            lastUpdateTime = block.timestamp;
+            periodFinish = block.timestamp.add(rewardsDuration);
+            emit RewardAdded(issuance);
+        }
     }
 
     /* ========== EVENTS ========== */
