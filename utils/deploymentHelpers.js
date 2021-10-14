@@ -14,7 +14,6 @@ const FlashLender = artifacts.require("./FlashLender.sol")
 
 const LQTYStaking = artifacts.require("./MultiRewards.sol")
 const LQTYToken = artifacts.require("./LQTYToken.sol")
-const LockupContractFactory = artifacts.require("./LockupContractFactory.sol")
 const CommunityIssuance = artifacts.require("./CommunityIssuance.sol")
 
 const LQTYTokenTester = artifacts.require("./LQTYTokenTester.sol")
@@ -33,7 +32,6 @@ const MockCollateral = artifacts.require("./MockCollateral.sol")
 LQTY contracts consist of only those contracts related to the LQTY Token:
 
 -the LQTY token
--the Lockup factory and lockup contracts
 -the LQTYStaking contract
 -the CommunityIssuance contract
 */
@@ -81,6 +79,8 @@ class DeploymentHelper {
     const hintHelpers = await HintHelpers.new()
     const flashLender = await FlashLender.new()
     const lusdToken = await LUSDToken.new(
+      "LUSD Stablecoin",
+      "LUSD",
       troveManager.address,
       stabilityPool.address,
       borrowerOperations.address,
@@ -129,7 +129,7 @@ class DeploymentHelper {
     testerContracts.priceFeedTestnet = await PriceFeedTestnet.new()
     testerContracts.sortedTroves = await SortedTroves.new()
     // Actual tester contracts
-    testerContracts.communityIssuance = await CommunityIssuanceTester.new()
+    testerContracts.communityIssuance = await CommunityIssuanceTester.new("32000000000000000000000000", "999998681227695000")
     testerContracts.activePool = await ActivePoolTester.new()
     testerContracts.defaultPool = await DefaultPoolTester.new()
     testerContracts.stabilityPool = await StabilityPoolTester.new()
@@ -142,6 +142,8 @@ class DeploymentHelper {
     testerContracts.hintHelpers = await HintHelpers.new()
     testerContracts.flashLender = await FlashLender.new()
     testerContracts.lusdToken =  await LUSDTokenTester.new(
+      "LUSD Stablecoin",
+      "LUSD",
       testerContracts.troveManager.address,
       testerContracts.stabilityPool.address,
       testerContracts.borrowerOperations.address,
@@ -153,27 +155,20 @@ class DeploymentHelper {
 
   static async deployLQTYContractsHardhat(bountyAddress, lpRewardsAddress, multisigAddress) {
     const lqtyStaking = await LQTYStaking.new()
-    const lockupContractFactory = await LockupContractFactory.new()
-    const communityIssuance = await CommunityIssuance.new()
+    const communityIssuance = await CommunityIssuance.new("32000000000000000000000000", "999998681227695000")
 
     LQTYStaking.setAsDeployed(lqtyStaking)
-    LockupContractFactory.setAsDeployed(lockupContractFactory)
     CommunityIssuance.setAsDeployed(communityIssuance)
 
     // Deploy LQTY Token, passing Community Issuance and Factory addresses to the constructor
     const lqtyToken = await LQTYToken.new(
-      communityIssuance.address,
-      lqtyStaking.address,
-      lockupContractFactory.address,
-      bountyAddress,
-      lpRewardsAddress,
-      multisigAddress
+        [communityIssuance.address, bountyAddress, lpRewardsAddress, multisigAddress],
+        ["32000000000000000000000000", "2000000000000000000000000", "1333333333333333333333333", "64666666666666666666666667"],
     )
     LQTYToken.setAsDeployed(lqtyToken)
 
     const LQTYContracts = {
       lqtyStaking,
-      lockupContractFactory,
       communityIssuance,
       lqtyToken
     }
@@ -182,27 +177,20 @@ class DeploymentHelper {
 
   static async deployLQTYTesterContractsHardhat(bountyAddress, lpRewardsAddress, multisigAddress) {
     const lqtyStaking = await LQTYStaking.new()
-    const lockupContractFactory = await LockupContractFactory.new()
-    const communityIssuance = await CommunityIssuanceTester.new()
+    const communityIssuance = await CommunityIssuanceTester.new("32000000000000000000000000", "999998681227695000")
 
     LQTYStaking.setAsDeployed(lqtyStaking)
-    LockupContractFactory.setAsDeployed(lockupContractFactory)
     CommunityIssuanceTester.setAsDeployed(communityIssuance)
 
     // Deploy LQTY Token, passing Community Issuance and Factory addresses to the constructor
     const lqtyToken = await LQTYTokenTester.new(
-      communityIssuance.address,
-      lqtyStaking.address,
-      lockupContractFactory.address,
-      bountyAddress,
-      lpRewardsAddress,
-      multisigAddress
+        [communityIssuance.address, bountyAddress, lpRewardsAddress, multisigAddress],
+        ["32000000000000000000000000", "2000000000000000000000000", "1333333333333333333333333", "64666666666666666666666667"],
     )
     LQTYTokenTester.setAsDeployed(lqtyToken)
 
     const LQTYContracts = {
       lqtyStaking,
-      lockupContractFactory,
       communityIssuance,
       lqtyToken
     }
@@ -245,23 +233,17 @@ class DeploymentHelper {
 
   static async deployLQTYContractsTruffle(bountyAddress, lpRewardsAddress, multisigAddress) {
     const lqtyStaking = await lqtyStaking.new()
-    const lockupContractFactory = await LockupContractFactory.new()
-    const communityIssuance = await CommunityIssuance.new()
+    const communityIssuance = await CommunityIssuance.new("32000000000000000000000000", "999998681227695000")
 
     /* Deploy LQTY Token, passing Community Issuance,  LQTYStaking, and Factory addresses
     to the constructor  */
     const lqtyToken = await LQTYToken.new(
-      communityIssuance.address,
-      lqtyStaking.address,
-      lockupContractFactory.address,
-      bountyAddress,
-      lpRewardsAddress,
-      multisigAddress
+      [communityIssuance.address, bountyAddress, lpRewardsAddress, multisigAddress],
+      ["32000000000000000000000000", "2000000000000000000000000", "1333333333333333333333333", "64666666666666666666666667"],
     )
 
     const LQTYContracts = {
       lqtyStaking,
-      lockupContractFactory,
       communityIssuance,
       lqtyToken
     }
@@ -270,20 +252,24 @@ class DeploymentHelper {
 
   static async deployLUSDToken(contracts) {
     contracts.lusdToken = await LUSDToken.new(
+      "LUSD Stablecoin",
+      "LUSD",
       contracts.troveManager.address,
       contracts.stabilityPool.address,
       contracts.borrowerOperations.address,
-      contracts.collateral.address
+      contracts.flashLender.address
     )
     return contracts
   }
 
   static async deployLUSDTokenTester(contracts) {
     contracts.lusdToken = await LUSDTokenTester.new(
+      "LUSD Stablecoin",
+      "LUSD",
       contracts.troveManager.address,
       contracts.stabilityPool.address,
       contracts.borrowerOperations.address,
-      contracts.collateral.address
+      contracts.flashLender.address
     )
     return contracts
   }
@@ -378,11 +364,6 @@ class DeploymentHelper {
         [contracts.lusdToken.address, contracts.collateral.address],
         [contracts.lusdToken.address, contracts.activePool.address]
     )
-  }
-
-  static async connectLQTYContracts(LQTYContracts) {
-    // Set LQTYToken address in LCF
-    await LQTYContracts.lockupContractFactory.setLQTYTokenAddress(LQTYContracts.lqtyToken.address)
   }
 
   static async connectLQTYContractsToCore(LQTYContracts, coreContracts) {

@@ -1,6 +1,5 @@
 
 const BN = require('bn.js')
-const LockupContract = artifacts.require(("./LockupContract.sol"))
 const Destructible = artifacts.require("./TestContracts/Destructible.sol")
 
 
@@ -541,7 +540,7 @@ class TestHelper {
     return { newColl, newDebt }
   }
 
- 
+
   // --- BorrowerOperations gas functions ---
 
   static async openTrove_allAccounts(accounts, contracts, ETHAmount, LUSDAmount) {
@@ -575,7 +574,7 @@ class TestHelper {
 
   static async openTrove_allAccounts_randomETH_ProportionalLUSD(minETH, maxETH, accounts, contracts, proportion) {
     const gasCostList = []
-  
+
     for (const account of accounts) {
       const randCollAmount = this.randAmountInWei(minETH, maxETH)
       const proportionalLUSD = (web3.utils.toBN(proportion)).mul(web3.utils.toBN(randCollAmount))
@@ -754,7 +753,7 @@ class TestHelper {
       const zero = this.toBN('0')
 
       let isDebtIncrease = LUSDChangeBN.gt(zero)
-      LUSDChangeBN = LUSDChangeBN.abs() 
+      LUSDChangeBN = LUSDChangeBN.abs()
 
       // Add ETH to trove
       if (ETHChangeBN.gt(zero)) {
@@ -776,7 +775,7 @@ class TestHelper {
 
     for (const account of accounts) {
       let tx;
-  
+
       let ETHChangeBN = this.toBN(this.randAmountInWei(ETHMin, ETHMax))
       let LUSDChangeBN = this.toBN(this.randAmountInWei(LUSDMin, LUSDMax))
 
@@ -786,7 +785,7 @@ class TestHelper {
       const zero = this.toBN('0')
 
       let isDebtIncrease = LUSDChangeBN.gt(zero)
-      LUSDChangeBN = LUSDChangeBN.abs() 
+      LUSDChangeBN = LUSDChangeBN.abs()
 
       // Add ETH to trove
       if (ETHChangeBN.gt(zero)) {
@@ -1073,22 +1072,6 @@ class TestHelper {
 
   // --- LQTY & Lockup Contract functions ---
 
-  static getLCAddressFromDeploymentTx(deployedLCTx) {
-    return deployedLCTx.logs[0].args[0]
-  }
-
-  static async getLCFromDeploymentTx(deployedLCTx) {
-    const deployedLCAddress = this.getLCAddressFromDeploymentTx(deployedLCTx)  // grab addr of deployed contract from event
-    const LC = await this.getLCFromAddress(deployedLCAddress)
-    return LC
-  }
-
-  static async getLCFromAddress(LCAddress) {
-    const LC = await LockupContract.at(LCAddress)
-    return LC
-  }
-
-
   static async registerFrontEnds(frontEnds, stabilityPool) {
     for (const frontEnd of frontEnds) {
       await stabilityPool.registerFrontEnd(this.dec(5, 17), { from: frontEnd })  // default kickback rate of 50%
@@ -1154,7 +1137,7 @@ class TestHelper {
       // console.log("tx failed")
       assert.include(err.message, "revert")
       // TODO !!!
-      
+
       // if (message) {
       //   assert.include(err.message, message)
       // }

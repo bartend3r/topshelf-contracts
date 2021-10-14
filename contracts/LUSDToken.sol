@@ -28,8 +28,8 @@ contract LUSDToken is CheckContract, ILUSDToken {
     using SafeMath for uint256;
 
     uint256 private _totalSupply;
-    string constant internal _NAME = "LUSD Stablecoin";
-    string constant internal _SYMBOL = "LUSD";
+    string internal _NAME;
+    string internal _SYMBOL;
     string constant internal _VERSION = "1";
     uint8 constant internal _DECIMALS = 18;
 
@@ -67,6 +67,8 @@ contract LUSDToken is CheckContract, ILUSDToken {
 
     constructor
     (
+        string memory _name,
+        string memory _symbol,
         address _troveManagerAddress,
         address _stabilityPoolAddress,
         address _borrowerOperationsAddress,
@@ -74,6 +76,9 @@ contract LUSDToken is CheckContract, ILUSDToken {
     )
         public
     {
+        _NAME = _name;
+        _SYMBOL = _symbol;
+
         checkContract(_troveManagerAddress);
         checkContract(_stabilityPoolAddress);
         checkContract(_borrowerOperationsAddress);
@@ -89,7 +94,7 @@ contract LUSDToken is CheckContract, ILUSDToken {
 
         flashLenderAddress = _flashLenderAddress;
 
-        bytes32 hashedName = keccak256(bytes(_NAME));
+        bytes32 hashedName = keccak256(bytes(_name));
         bytes32 hashedVersion = keccak256(bytes(_VERSION));
 
         _HASHED_NAME = hashedName;

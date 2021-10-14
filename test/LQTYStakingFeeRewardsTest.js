@@ -17,19 +17,19 @@ const assertRevert = th.assertRevert
 const toBN = th.toBN
 const ZERO = th.toBN('0')
 
-/* NOTE: These tests do not test for specific ETH and LUSD gain values. They only test that the 
- * gains are non-zero, occur when they should, and are in correct proportion to the user's stake. 
+/* NOTE: These tests do not test for specific ETH and LUSD gain values. They only test that the
+ * gains are non-zero, occur when they should, and are in correct proportion to the user's stake.
  *
  * Specific ETH/LUSD gain values will depend on the final fee schedule used, and the final choices for
  * parameters BETA and MINUTE_DECAY_FACTOR in the TroveManager, which are still TBD based on economic
  * modelling.
- * 
- */ 
+ *
+ */
 
 contract('LQTYStaking revenue share tests', async accounts => {
 
   const [bountyAddress, lpRewardsAddress, multisig] = accounts.slice(997, 1000)
-  
+
   const [owner, A, B, C, D, E, F, G, whale] = accounts;
 
   let priceFeed
@@ -54,12 +54,11 @@ contract('LQTYStaking revenue share tests', async accounts => {
     contracts.troveManager = await TroveManagerTester.new()
     contracts = await deploymentHelper.deployLUSDTokenTester(contracts)
     const LQTYContracts = await deploymentHelper.deployLQTYTesterContractsHardhat(bountyAddress, lpRewardsAddress, multisig)
-    
-    await deploymentHelper.connectLQTYContracts(LQTYContracts)
+
     await deploymentHelper.connectCoreContracts(contracts, LQTYContracts)
     await deploymentHelper.connectLQTYContractsToCore(LQTYContracts, contracts)
 
-    nonPayable = await NonPayable.new() 
+    nonPayable = await NonPayable.new()
     priceFeed = contracts.priceFeedTestnet
     lusdToken = contracts.lusdToken
     sortedTroves = contracts.sortedTroves
@@ -131,7 +130,7 @@ contract('LQTYStaking revenue share tests', async accounts => {
     // OLD: Check ETH fee per unit staked is zero
     // const F_ETH_Before = await lqtyStaking.F_ETH()
 
-    // NEW: Check the collateral rewardData.rewardRate  
+    // NEW: Check the collateral rewardData.rewardRate
     // (added a check on the actual balance of the contract)
     const Collat_Before = await collateral.balanceOf(lqtyStaking.address);
     assert.equal(Collat_Before, '0')
@@ -141,7 +140,7 @@ contract('LQTYStaking revenue share tests', async accounts => {
     const B_BalBeforeREdemption = await lusdToken.balanceOf(B)
     // B redeems
     const redemptionTx = await th.redeemCollateralAndGetTxObject(B, contracts, dec(100, 18))
-    
+
     const B_BalAfterRedemption = await lusdToken.balanceOf(B)
     assert.isTrue(B_BalAfterRedemption.lt(B_BalBeforeREdemption))
 
@@ -159,9 +158,9 @@ contract('LQTYStaking revenue share tests', async accounts => {
     // NEW: Check the new collateral rewardData.rewardRate is > old value
     const F_ETH_After = await lqtyStaking.rewardData(collateral.address)
     assert.isTrue(F_ETH_Before.rewardRate.lt(F_ETH_After.rewardRate))
-    
+
     // OLD: Expect fee per unit staked = fee/(100), since there is 100 LUSD totalStaked
-    // const expected_F_ETH_After = emittedETHFee.div(toBN('100')) 
+    // const expected_F_ETH_After = emittedETHFee.div(toBN('100'))
 
     // NEW: Expect F_ETH_After.rewardRate to equal Collat_After/(7*24*60*60)
     const expected_F_ETH_After = (Collat_After/(7*24*60*60)).toFixed(0);
@@ -195,7 +194,7 @@ contract('LQTYStaking revenue share tests', async accounts => {
     const B_BalBeforeREdemption = await lusdToken.balanceOf(B)
     // B redeems
     const redemptionTx = await th.redeemCollateralAndGetTxObject(B, contracts, dec(100, 18))
-    
+
     const B_BalAfterRedemption = await lusdToken.balanceOf(B)
     assert.isTrue(B_BalAfterRedemption.lt(B_BalBeforeREdemption))
 
@@ -211,7 +210,7 @@ contract('LQTYStaking revenue share tests', async accounts => {
     Collat_total = Collat_Before.add(emittedETHFee)
     assert.equal(Collat_total.toString(), Collat_After.toString())
 
-    // Check ETH fee per unit staked has increased 
+    // Check ETH fee per unit staked has increased
     const F_ETH_After = await lqtyStaking.rewardData(collateral.address)
     assert.isTrue(F_ETH_After.rewardRate.gt(F_ETH_Before.rewardRate))
 
@@ -219,7 +218,7 @@ contract('LQTYStaking revenue share tests', async accounts => {
   })
 
   it("LUSD fee per LQTY staked increases when a redemption fee is triggered and totalStakes > 0", async () => {
-    // Moved this up as it was interfering with MultiRewards lastUpdateTime etc. 
+    // Moved this up as it was interfering with MultiRewards lastUpdateTime etc.
     // and the decay made it difficult to compare after events
     // FF time one year so owner can transfer LQTY
     await th.fastForwardTime(timeValues.SECONDS_IN_ONE_YEAR, web3.currentProvider)
@@ -230,13 +229,13 @@ contract('LQTYStaking revenue share tests', async accounts => {
     const F_LUSD_Start = await lqtyStaking.rewardData(lusdToken.address)
     assert.equal(F_LUSD_Start.rewardRate.toString(), '0')
 
-    // open troves  
+    // open troves
     const tx1 = await openTrove({ extraLUSDAmount: toBN(dec(10000, 18)), ICR: toBN(dec(10, 18)), extraParams: { from: whale } })
     const tx2 = await openTrove({ extraLUSDAmount: toBN(dec(20000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: A } })
     const tx3 = await openTrove({ extraLUSDAmount: toBN(dec(30000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: B } })
     const tx4 = await openTrove({ extraLUSDAmount: toBN(dec(40000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: C } })
     const tx5 = await openTrove({ extraLUSDAmount: toBN(dec(50000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: D } })
-    
+
     // calculate lusd fees sent to staking contract
     const Trove_Fees = tx1.tx.logs[2].args[1].add(tx2.tx.logs[2].args[1]).add(tx3.tx.logs[2].args[1]).add(tx4.tx.logs[2].args[1]).add(tx5.tx.logs[2].args[1]);
 
@@ -258,7 +257,7 @@ contract('LQTYStaking revenue share tests', async accounts => {
     const B_BalBeforeREdemption = await lusdToken.balanceOf(B)
     // B redeems
     const redemptionTx = await th.redeemCollateralAndGetTxObject(B, contracts, dec(100, 18))
-    
+
     const B_BalAfterRedemption = await lusdToken.balanceOf(B)
     assert.isTrue(B_BalAfterRedemption.lt(B_BalBeforeREdemption))
 
@@ -272,7 +271,7 @@ contract('LQTYStaking revenue share tests', async accounts => {
     // Check LUSD fee value in event is non-zero
     const emittedLUSDFee = toBN(th.getLUSDFeeFromLUSDBorrowingEvent(tx))
     assert.isTrue(emittedLUSDFee.gt(toBN('0')))
-    
+
     // Check LUSD fee per unit staked has increased by correct amount
     // const F_LUSD_After = await lqtyStaking.F_LUSD()
     const F_LUSD_After = await lqtyStaking.rewardData(lusdToken.address)
@@ -295,13 +294,13 @@ contract('LQTYStaking revenue share tests', async accounts => {
     const LUSD_Start = await lusdToken.balanceOf(lqtyStaking.address);
     assert.equal(LUSD_Start.toString(), '0')
 
-    // open troves  
+    // open troves
     const tx1 = await openTrove({ extraLUSDAmount: toBN(dec(10000, 18)), ICR: toBN(dec(10, 18)), extraParams: { from: whale } })
     const tx2 = await openTrove({ extraLUSDAmount: toBN(dec(20000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: A } })
     const tx3 = await openTrove({ extraLUSDAmount: toBN(dec(30000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: B } })
     const tx4 = await openTrove({ extraLUSDAmount: toBN(dec(40000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: C } })
     const tx5 = await openTrove({ extraLUSDAmount: toBN(dec(50000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: D } })
-    
+
     // calculate lusd fees sent to staking contract
     const Trove_Fees = tx1.tx.logs[2].args[1].add(tx2.tx.logs[2].args[1]).add(tx3.tx.logs[2].args[1]).add(tx4.tx.logs[2].args[1]).add(tx5.tx.logs[2].args[1]);
 
@@ -324,7 +323,7 @@ contract('LQTYStaking revenue share tests', async accounts => {
     const B_BalBeforeREdemption = await lusdToken.balanceOf(B)
     // B redeems
     const redemptionTx = await th.redeemCollateralAndGetTxObject(B, contracts, dec(100, 18))
-    
+
     const B_BalAfterRedemption = await lusdToken.balanceOf(B)
     assert.isTrue(B_BalAfterRedemption.lt(B_BalBeforeREdemption))
 
@@ -334,11 +333,11 @@ contract('LQTYStaking revenue share tests', async accounts => {
 
     // D draws debt
     const tx = await borrowerOperations.withdrawLUSD(th._100pct, dec(27, 18), D, D, {from: D})
-    
+
     // Check LUSD fee value in event is non-zero
     const emittedLUSDFee = toBN(th.getLUSDFeeFromLUSDBorrowingEvent(tx))
     assert.isTrue(emittedLUSDFee.gt(toBN('0')))
-    
+
     // // Check LUSD fee per unit staked did not increase, is still zero
     const F_LUSD_After = await lqtyStaking.rewardData(lusdToken.address)
     assert.equal(F_LUSD_After.toString(), F_LUSD_Before.toString())
@@ -354,7 +353,7 @@ contract('LQTYStaking revenue share tests', async accounts => {
     // A makes stake
     // Here in MultiRewards they start earning from the trove fees.
     // In the original lqtyStaking contract they would not get those trove fees,
-    // only subsequent fees. 
+    // only subsequent fees.
     await lqtyToken.approve(lqtyStaking.address, dec(100, 18), {from: A})
     await lqtyStaking.stake(dec(100, 18), {from: A})
 
@@ -380,7 +379,7 @@ contract('LQTYStaking revenue share tests', async accounts => {
     const B_BalBeforeREdemption = await lusdToken.balanceOf(B)
     // B redeems
     const redemptionTx_1 = await th.redeemCollateralAndGetTxObject(B, contracts, dec(100, 18))
-    
+
     const B_BalAfterRedemption = await lusdToken.balanceOf(B)
     assert.isTrue(B_BalAfterRedemption.lt(B_BalBeforeREdemption))
 
@@ -391,24 +390,24 @@ contract('LQTYStaking revenue share tests', async accounts => {
     const C_BalBeforeREdemption = await lusdToken.balanceOf(C)
     // C redeems
     const redemptionTx_2 = await th.redeemCollateralAndGetTxObject(C, contracts, dec(100, 18))
-    
+
     const C_BalAfterRedemption = await lusdToken.balanceOf(C)
     assert.isTrue(C_BalAfterRedemption.lt(C_BalBeforeREdemption))
- 
+
     // check ETH fee 2 emitted in event is non-zero
     const emittedETHFee_2 = toBN((await th.getEmittedRedemptionValues(redemptionTx_2))[3])
     assert.isTrue(emittedETHFee_2.gt(toBN('0')))
 
     // D draws debt
     const borrowingTx_1 = await borrowerOperations.withdrawLUSD(th._100pct, dec(104, 18), D, D, {from: D})
-    
+
     // Check LUSD fee value in event is non-zero
     const emittedLUSDFee_1 = toBN(th.getLUSDFeeFromLUSDBorrowingEvent(borrowingTx_1))
     assert.isTrue(emittedLUSDFee_1.gt(toBN('0')))
 
     // B draws debt
     const borrowingTx_2 = await borrowerOperations.withdrawLUSD(th._100pct, dec(17, 18), B, B, {from: B})
-    
+
     // Check LUSD fee value in event is non-zero
     const emittedLUSDFee_2 = toBN(th.getLUSDFeeFromLUSDBorrowingEvent(borrowingTx_2))
     assert.isTrue(emittedLUSDFee_2.gt(toBN('0')))
@@ -420,23 +419,23 @@ contract('LQTYStaking revenue share tests', async accounts => {
 
     const expectedTotalETHGain = emittedETHFee_1.add(emittedETHFee_2).add(Collat_Troves)
     const expectedTotalLUSDGain = emittedLUSDFee_1.add(emittedLUSDFee_2).add(LUSD_Troves)
-    
-    
+
+
     const A_ETHBalance_Before = toBN(await collateral.balanceOf(A))
     const A_LUSDBalance_Before = toBN(await lusdToken.balanceOf(A))
-    
+
     // FF time one week so staker gets all the rewards
     await th.fastForwardTime(604801, web3.currentProvider)
-    
+
     // A un-stakes
     await lqtyStaking.exit({from: A, gasPrice: 0})
-    
+
     const A_ETHBalance_After = toBN(await collateral.balanceOf(A))
     const A_LUSDBalance_After = toBN(await lusdToken.balanceOf(A))
-    
+
     const LUSD_After = await lusdToken.balanceOf(lqtyStaking.address);
     const Collat_After = await collateral.balanceOf(lqtyStaking.address);
-    
+
     const A_ETHGain = A_ETHBalance_After.sub(A_ETHBalance_Before)
     const A_LUSDGain = A_LUSDBalance_After.sub(A_LUSDBalance_Before)
 
@@ -444,7 +443,7 @@ contract('LQTYStaking revenue share tests', async accounts => {
     assert.isAtMost(th.getDifference(expectedTotalLUSDGain, A_LUSDGain), 2000000)
   })
 
-  it("unstake(): reverts if user has no stake",  async () => {  
+  it("unstake(): reverts if user has no stake",  async () => {
     const unstakeTxPromise1 = lqtyStaking.withdraw(1, {from: A})
     const unstakeTxPromise2 = lqtyStaking.withdraw(1, {from: owner})
 

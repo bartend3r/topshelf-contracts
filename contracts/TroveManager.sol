@@ -8,7 +8,7 @@ import "./Interfaces/IStabilityPool.sol";
 import "./Interfaces/ICollSurplusPool.sol";
 import "./Interfaces/ILUSDToken.sol";
 import "./Interfaces/ISortedTroves.sol";
-import "./Interfaces/ILQTYToken.sol";
+import "./Dependencies/IERC20.sol";
 import "./Interfaces/IMultiRewards.sol";
 import "./Dependencies/LiquityBase.sol";
 import "./Dependencies/Ownable.sol";
@@ -17,6 +17,8 @@ import "./Dependencies/console.sol";
 
 contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
     string constant public NAME = "TroveManager";
+
+    uint public systemDeploymentTime;
 
     // --- Connected contract declarations ---
 
@@ -30,7 +32,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
 
     ILUSDToken public override lusdToken;
 
-    ILQTYToken public override lqtyToken;
+    IERC20 public override lqtyToken;
     address public collateralToken;
 
     IMultiRewards public override lqtyStaking;
@@ -271,9 +273,11 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         priceFeed = IPriceFeed(_priceFeedAddress);
         lusdToken = ILUSDToken(_lusdTokenAddress);
         sortedTroves = ISortedTroves(_sortedTrovesAddress);
-        lqtyToken = ILQTYToken(_lqtyTokenAddress);
+        lqtyToken = IERC20(_lqtyTokenAddress);
         lqtyStaking = IMultiRewards(_lqtyStakingAddress);
         collateralToken = address(IBorrowerOperations(_borrowerOperationsAddress).collateralToken());
+
+        systemDeploymentTime = block.timestamp;
 
         emit BorrowerOperationsAddressChanged(_borrowerOperationsAddress);
         emit ActivePoolAddressChanged(_activePoolAddress);
@@ -1495,7 +1499,6 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
     }
 
     function _requireAfterBootstrapPeriod() internal view {
-        uint systemDeploymentTime = lqtyToken.getDeploymentStartTime();
         require(block.timestamp >= systemDeploymentTime.add(BOOTSTRAP_PERIOD), "TroveManager: Redemptions are not allowed during bootstrap phase");
     }
 

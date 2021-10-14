@@ -2,7 +2,7 @@
 
 pragma solidity 0.6.11;
 
-import "../Interfaces/ILQTYToken.sol";
+import "../Dependencies/IERC20.sol";
 import "../Interfaces/ICommunityIssuance.sol";
 import "../Dependencies/BaseMath.sol";
 import "../Dependencies/LiquityMath.sol";
@@ -25,26 +25,24 @@ contract CommunityIssuance is ICommunityIssuance, Ownable, CheckContract, BaseMa
     * Minutes in one year: 60*24*365 = 525600
     *
     * For 50% of remaining tokens issued each year, with minutes as time units, we have:
-    * 
+    *
     * F ** 525600 = 0.5
-    * 
+    *
     * Re-arranging:
-    * 
+    *
     * 525600 * ln(F) = ln(0.5)
     * F = 0.5 ** (1/525600)
-    * F = 0.999998681227695000 
+    * F = 0.999998681227695000
+    * F = 999998681227695000
     */
-    uint constant public ISSUANCE_FACTOR = 999998681227695000;
-
-    /* 
+    uint public immutable ISSUANCE_FACTOR;
+    /*
     * The community LQTY supply cap is the starting balance of the Community Issuance contract.
     * It should be minted to this contract by LQTYToken, when the token is deployed.
-    * 
-    * Set to 32M (slightly less than 1/3) of total LQTY supply.
     */
-    uint constant public LQTYSupplyCap = 32e24; // 32 million
+    uint public immutable LQTYSupplyCap;
 
-    ILQTYToken public lqtyToken;
+    IERC20 public lqtyToken;
 
     address public stabilityPoolAddress;
 
@@ -59,26 +57,28 @@ contract CommunityIssuance is ICommunityIssuance, Ownable, CheckContract, BaseMa
 
     // --- Functions ---
 
-    constructor() public {
+    constructor(uint _supplyCap, uint _issuanceFactor) public {
         deploymentTime = block.timestamp;
+        LQTYSupplyCap = _supplyCap;
+        ISSUANCE_FACTOR = _issuanceFactor;
     }
 
     function setAddresses
     (
-        address _lqtyTokenAddress, 
+        address _lqtyTokenAddress,
         address _stabilityPoolAddress
-    ) 
-        external 
-        onlyOwner 
-        override 
+    )
+        external
+        onlyOwner
+        override
     {
         checkContract(_lqtyTokenAddress);
         checkContract(_stabilityPoolAddress);
 
-        lqtyToken = ILQTYToken(_lqtyTokenAddress);
+        lqtyToken = IERC20(_lqtyTokenAddress);
         stabilityPoolAddress = _stabilityPoolAddress;
 
-        // When LQTYToken deployed, it should have transferred CommunityIssuance's LQTY entitlement
+        // full token entitlement for this contract must be transferred in prior to calling setAddresses
         uint LQTYBalance = lqtyToken.balanceOf(address(this));
         assert(LQTYBalance >= LQTYSupplyCap);
 
@@ -96,7 +96,7 @@ contract CommunityIssuance is ICommunityIssuance, Ownable, CheckContract, BaseMa
 
         totalLQTYIssued = latestTotalLQTYIssued;
         emit TotalLQTYIssuedUpdated(latestTotalLQTYIssued);
-        
+
         return issuance;
     }
 

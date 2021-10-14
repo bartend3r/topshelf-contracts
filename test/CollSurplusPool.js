@@ -47,13 +47,12 @@ contract('CollSurplusPool', async accounts => {
 
 
     await deploymentHelper.connectCoreContracts(contracts, LQTYContracts)
-    await deploymentHelper.connectLQTYContracts(LQTYContracts)
     await deploymentHelper.connectLQTYContractsToCore(LQTYContracts, contracts)
     for (account of accounts.slice(0, 6)) {
       await contracts.collateral.faucet(account, collateralAmount)
       await contracts.collateral.approve(borrowerOperations.address, approvalAmount, { from: account } )
       await contracts.collateral.approve(activePool.address, approvalAmount, { from: account } )
-    }    
+    }
   })
 
   it("CollSurplusPool::getETH(): Returns the ETH balance of the CollSurplusPool after redemption", async () => {

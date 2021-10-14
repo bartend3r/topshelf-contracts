@@ -119,7 +119,6 @@ contract('LQTY Token', async accounts => {
     tokenVersion = await lqtyTokenTester.version()
     chainId = await lqtyTokenTester.getChainId()
 
-    await deploymentHelper.connectLQTYContracts(LQTYContracts)
     await deploymentHelper.connectCoreContracts(contracts, LQTYContracts)
     await deploymentHelper.connectLQTYContractsToCore(LQTYContracts, contracts)
   })
@@ -138,7 +137,7 @@ contract('LQTY Token', async accounts => {
 
   it('totalSupply(): gets the total supply', async () => {
     const total = (await lqtyTokenTester.totalSupply()).toString()
-   
+
     assert.equal(total, dec(100, 24))
   })
 
@@ -303,25 +302,6 @@ contract('LQTY Token', async accounts => {
 
     const A_allowanceAfterDecrease = await lqtyTokenTester.allowance(B, A)
     assert.equal(A_allowanceAfterDecrease, '0')
-  })
-
-  it('sendToLQTYStaking(): changes balances of LQTYStaking and calling account by the correct amounts', async () => {
-    // mint some tokens to A
-    await lqtyTokenTester.unprotectedMint(A, dec(150, 18))
-
-    // Check caller and LQTYStaking balance before
-    const A_BalanceBefore = await lqtyTokenTester.balanceOf(A)
-    assert.equal(A_BalanceBefore, dec(150, 18))
-    const lqtyStakingBalanceBefore = await lqtyTokenTester.balanceOf(lqtyStaking.address)
-    assert.equal(lqtyStakingBalanceBefore, '0')
-
-    await lqtyTokenTester.unprotectedSendToLQTYStaking(A, dec(37, 18))
-
-    // Check caller and LQTYStaking balance before
-    const A_BalanceAfter = await lqtyTokenTester.balanceOf(A)
-    assert.equal(A_BalanceAfter, dec(113, 18))
-    const lqtyStakingBalanceAfter = await lqtyTokenTester.balanceOf(lqtyStaking.address)
-    assert.equal(lqtyStakingBalanceAfter, dec(37, 18))
   })
 
   // EIP2612 tests
