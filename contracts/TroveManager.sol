@@ -18,6 +18,8 @@ import "./Dependencies/console.sol";
 contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
     string constant public NAME = "TroveManager";
 
+    uint public systemDeploymentTime;
+
     // --- Connected contract declarations ---
 
     address public borrowerOperationsAddress;
@@ -274,6 +276,8 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         lqtyToken = ILQTYToken(_lqtyTokenAddress);
         lqtyStaking = IMultiRewards(_lqtyStakingAddress);
         collateralToken = address(IBorrowerOperations(_borrowerOperationsAddress).collateralToken());
+
+        systemDeploymentTime = block.timestamp;
 
         emit BorrowerOperationsAddressChanged(_borrowerOperationsAddress);
         emit ActivePoolAddressChanged(_activePoolAddress);
@@ -1495,7 +1499,6 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
     }
 
     function _requireAfterBootstrapPeriod() internal view {
-        uint systemDeploymentTime = lqtyToken.getDeploymentStartTime();
         require(block.timestamp >= systemDeploymentTime.add(BOOTSTRAP_PERIOD), "TroveManager: Redemptions are not allowed during bootstrap phase");
     }
 

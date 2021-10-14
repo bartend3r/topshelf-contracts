@@ -7,20 +7,14 @@ import "../LQTY/LQTYToken.sol";
 contract LQTYTokenTester is LQTYToken {
     constructor
     (
-        address _communityIssuanceAddress,
-        address _lockupFactoryAddress,
-        address _bountyAddress,
-        address _lpRewardsAddress,
-        address _multisigAddress
+        address[] memory _receivers,
+        uint[] memory _amounts
     )
         public
         LQTYToken
     (
-        _communityIssuanceAddress,
-        _lockupFactoryAddress,
-        _bountyAddress,
-        _lpRewardsAddress,
-        _multisigAddress
+        _receivers,
+        _amounts
     )
     {}
 
