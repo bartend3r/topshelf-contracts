@@ -5,7 +5,7 @@ pragma solidity 0.6.11;
 import "./ILiquityBase.sol";
 import "./IStabilityPool.sol";
 import "./ILUSDToken.sol";
-import "./ILQTYToken.sol";
+import "../Dependencies/IERC20.sol";
 import "./IMultiRewards.sol";
 
 
@@ -56,7 +56,7 @@ interface ITroveManager is ILiquityBase {
 
     function stabilityPool() external view returns (IStabilityPool);
     function lusdToken() external view returns (ILUSDToken);
-    function lqtyToken() external view returns (ILQTYToken);
+    function lqtyToken() external view returns (IERC20);
     function lqtyStaking() external view returns (IMultiRewards);
 
     function getTroveOwnersCount() external view returns (uint);

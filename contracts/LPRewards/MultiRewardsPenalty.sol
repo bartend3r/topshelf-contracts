@@ -7,7 +7,6 @@ import "../Dependencies/ReentrancyGuard.sol";
 import "../Dependencies/SafeERC20.sol";
 import "../Dependencies/SafeMath.sol";
 import "../Dependencies/Pausable.sol";
-import "../Interfaces/ILQTYToken.sol";
 import "../Interfaces/IUniswapV2Pair.sol";
 
 contract MultiRewards2 is ReentrancyGuard, Pausable {
@@ -40,7 +39,7 @@ contract MultiRewards2 is ReentrancyGuard, Pausable {
     // token within `stakingToken` that is forwarded to the single-sided `MultiRewards` staker
     IERC20 public wantToken;
     // token within `stakingToken` that is burnt
-    ILQTYToken public burnToken;
+    IERC20 public burnToken;
 
     mapping (address => UserBalance) userBalances;
     mapping(address => Reward) public rewardData;
@@ -68,7 +67,7 @@ contract MultiRewards2 is ReentrancyGuard, Pausable {
     constructor(
         IUniswapV2Pair _stakingToken,
         IERC20 _wantToken,
-        ILQTYToken _burnToken,
+        IERC20 _burnToken,
         address _penaltyReceiver
     )
         public
@@ -151,7 +150,7 @@ contract MultiRewards2 is ReentrancyGuard, Pausable {
 
                 // burn the LIQR withdrawn from the LP position
                 amount = burnToken.balanceOf(address(this));
-                burnToken.burn(amount);
+                burnToken.transfer(address(0xdead), amount);
 
                 // add the reward token to the LIQR staking contract
                 amount = wantToken.balanceOf(address(this));

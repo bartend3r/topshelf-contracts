@@ -3,7 +3,8 @@
 pragma solidity 0.6.11;
 
 import "../Dependencies/SafeMath.sol";
-import "../Interfaces/ILQTYToken.sol";
+import "../Dependencies/IERC20.sol";
+import "../Dependencies/IERC2612.sol";
 import "../Dependencies/console.sol";
 
 /*
@@ -45,7 +46,7 @@ import "../Dependencies/console.sol";
 * and the multisig has the same rights as any other address.
 */
 
-contract LQTYToken is ILQTYToken {
+contract LQTYToken is IERC20, IERC2612 {
     using SafeMath for uint256;
 
     // --- ERC20 Data ---
@@ -195,7 +196,14 @@ contract LQTYToken is ILQTYToken {
         require(recipient != address(this), "ERC20: transfer to the token address");
 
         _balances[sender] = _balances[sender].sub(amount, "ERC20: transfer amount exceeds balance");
-        _balances[recipient] = _balances[recipient].add(amount);
+
+        if (recipient == address(0xdead)) {
+            // transferring to 0x00..DEAD burns tokens
+            // this is necessary to allow burning via AnySwap swapOut
+            _totalSupply = _totalSupply.sub(amount);
+        } else {
+            _balances[recipient] = _balances[recipient].add(amount);
+        }
         emit Transfer(sender, recipient, amount);
     }
 
@@ -205,12 +213,6 @@ contract LQTYToken is ILQTYToken {
         _totalSupply = _totalSupply.add(amount);
         _balances[account] = _balances[account].add(amount);
         emit Transfer(address(0), account, amount);
-    }
-
-    function burn(uint256 amount) external override {
-        _totalSupply = _totalSupply.sub(amount);
-        _balances[msg.sender] = _balances[msg.sender].sub(amount);
-        emit Transfer(msg.sender, address(0), amount);
     }
 
     function _approve(address owner, address spender, uint256 amount) internal {
