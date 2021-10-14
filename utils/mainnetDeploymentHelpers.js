@@ -180,19 +180,6 @@ class MainnetDeploymentHelper {
     return LQTYContracts
   }
 
-  async deployUnipoolMainnet(deploymentState) {
-    const unipoolFactory = await this.getFactory("Unipool")
-    const unipool = await this.loadOrDeploy(unipoolFactory, 'unipool', deploymentState)
-
-    if (!this.configParams.ETHERSCAN_BASE_URL) {
-      console.log('No Etherscan Url defined, skipping verification')
-    } else {
-      await this.verifyContract('unipool', deploymentState)
-    }
-
-    return unipool
-  }
-
   async deployMultiTroveGetterMainnet(liquityCore, deploymentState) {
     const multiTroveGetterFactory = await this.getFactory("MultiTroveGetter")
     const multiTroveGetterParams = [
@@ -232,7 +219,7 @@ class MainnetDeploymentHelper {
       await this.sendAndWaitForTransaction(contracts.sortedTroves.setParams(
         maxBytes32,
         contracts.troveManager.address,
-        contracts.borrowerOperations.address, 
+        contracts.borrowerOperations.address,
 	{gasPrice}
       ))
 
@@ -253,7 +240,7 @@ class MainnetDeploymentHelper {
 	{gasPrice}
       ))
 
-    // set contracts in BorrowerOperations 
+    // set contracts in BorrowerOperations
     await this.isOwnershipRenounced(contracts.borrowerOperations) ||
       await this.sendAndWaitForTransaction(contracts.borrowerOperations.setAddresses(
         contracts.troveManager.address,
@@ -328,7 +315,7 @@ class MainnetDeploymentHelper {
       await this.sendAndWaitForTransaction(LQTYContracts.lqtyStaking.setAddresses(
         LQTYContracts.lqtyToken.address,
         coreContracts.lusdToken.address,
-        coreContracts.troveManager.address, 
+        coreContracts.troveManager.address,
         coreContracts.borrowerOperations.address,
         coreContracts.activePool.address,
 	{gasPrice}
@@ -340,12 +327,6 @@ class MainnetDeploymentHelper {
         coreContracts.stabilityPool.address,
 	{gasPrice}
       ))
-  }
-
-  async connectUnipoolMainnet(uniPool, LQTYContracts, LUSDWETHPairAddr, duration) {
-    const gasPrice = this.configParams.GAS_PRICE
-    await this.isOwnershipRenounced(uniPool) ||
-      await this.sendAndWaitForTransaction(uniPool.setParams(LQTYContracts.lqtyToken.address, LUSDWETHPairAddr, duration, {gasPrice}))
   }
 
   // --- Verify on Ethrescan ---
