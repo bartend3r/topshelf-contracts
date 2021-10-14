@@ -9,11 +9,15 @@ contract LUSDTokenTester is LUSDToken {
     bytes32 private immutable _PERMIT_TYPEHASH = 0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9;
 
     constructor(
+        string memory _name,
+        string memory _symbol,
         address _troveManagerAddress,
         address _stabilityPoolAddress,
         address _borrowerOperationsAddress,
         address _flashLenderAddress
-    ) public LUSDToken(_troveManagerAddress,
+    ) public LUSDToken(_name,
+                      _symbol,
+                      _troveManagerAddress,
                       _stabilityPoolAddress,
                       _borrowerOperationsAddress,
                       _flashLenderAddress) {}

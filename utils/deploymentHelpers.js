@@ -79,6 +79,8 @@ class DeploymentHelper {
     const hintHelpers = await HintHelpers.new()
     const flashLender = await FlashLender.new()
     const lusdToken = await LUSDToken.new(
+      "LUSD Stablecoin",
+      "LUSD",
       troveManager.address,
       stabilityPool.address,
       borrowerOperations.address,
@@ -140,6 +142,8 @@ class DeploymentHelper {
     testerContracts.hintHelpers = await HintHelpers.new()
     testerContracts.flashLender = await FlashLender.new()
     testerContracts.lusdToken =  await LUSDTokenTester.new(
+      "LUSD Stablecoin",
+      "LUSD",
       testerContracts.troveManager.address,
       testerContracts.stabilityPool.address,
       testerContracts.borrowerOperations.address,
@@ -248,20 +252,24 @@ class DeploymentHelper {
 
   static async deployLUSDToken(contracts) {
     contracts.lusdToken = await LUSDToken.new(
+      "LUSD Stablecoin",
+      "LUSD",
       contracts.troveManager.address,
       contracts.stabilityPool.address,
       contracts.borrowerOperations.address,
-      contracts.collateral.address
+      contracts.flashLender.address
     )
     return contracts
   }
 
   static async deployLUSDTokenTester(contracts) {
     contracts.lusdToken = await LUSDTokenTester.new(
+      "LUSD Stablecoin",
+      "LUSD",
       contracts.troveManager.address,
       contracts.stabilityPool.address,
       contracts.borrowerOperations.address,
-      contracts.collateral.address
+      contracts.flashLender.address
     )
     return contracts
   }
