@@ -16,7 +16,7 @@ const timeValues = testHelpers.TimeValues
  *
  * Specific ETH gain values will depend on the final fee schedule used, and the final choices for
  * the parameter BETA in the TroveManager, which is still TBD based on economic modelling.
- * 
+ *
  */
 contract('TroveManager', async accounts => {
 
@@ -40,14 +40,14 @@ contract('TroveManager', async accounts => {
   let collateralAmount = dec(1, 31);
   let approvalAmount = dec(1, 31);
   const getOpenTroveLUSDAmount = async (totalDebt) => th.getOpenTroveLUSDAmount(contracts, totalDebt)
- 
+
   const getSnapshotsRatio = async () => {
     try {
 
       const ratio = (await troveManager.totalStakesSnapshot())
         .mul(toBN(dec(1, 18)))
         .div((await troveManager.totalCollateralSnapshot()))
-  
+
       return ratio
     } catch(err) {
       console.log('err', err)
@@ -79,7 +79,6 @@ contract('TroveManager', async accounts => {
     lqtyStaking = LQTYContracts.lqtyStaking
     lqtyToken = LQTYContracts.lqtyToken
     communityIssuance = LQTYContracts.communityIssuance
-    lockupContractFactory = LQTYContracts.lockupContractFactory
 
     await deploymentHelper.connectCoreContracts(contracts, LQTYContracts)
     await deploymentHelper.connectLQTYContracts(LQTYContracts)
@@ -87,22 +86,22 @@ contract('TroveManager', async accounts => {
     for (account of accounts.slice(0, 25)) {
       await contracts.collateral.faucet(account, collateralAmount)
       await contracts.collateral.approve(borrowerOperations.address, approvalAmount, { from: account } )
-    }       
+    }
   })
 
   it("A given trove's stake decline is negligible with adjustments and tiny liquidations", async () => {
     await priceFeed.setPrice(dec(100, 18))
-  
+
     // Make 1 mega troves A at ~50% total collateral
     await borrowerOperations.openTrove(th._100pct, dec(2, 29), await getOpenTroveLUSDAmount(dec(1, 31)), ZERO_ADDRESS, ZERO_ADDRESS, { from: A })
-    
+
     // Make 5 large troves B, C, D, E, F at ~10% total collateral
     await borrowerOperations.openTrove(th._100pct, dec(4, 28), await getOpenTroveLUSDAmount(dec(2, 30)), ZERO_ADDRESS, ZERO_ADDRESS, { from: B })
     await borrowerOperations.openTrove(th._100pct, dec(4, 28), await getOpenTroveLUSDAmount(dec(2, 30)), ZERO_ADDRESS, ZERO_ADDRESS, { from: C })
     await borrowerOperations.openTrove(th._100pct, dec(4, 28), await getOpenTroveLUSDAmount(dec(2, 30)), ZERO_ADDRESS, ZERO_ADDRESS, { from: D })
     await borrowerOperations.openTrove(th._100pct, dec(4, 28), await getOpenTroveLUSDAmount(dec(2, 30)), ZERO_ADDRESS, ZERO_ADDRESS, { from: E })
     await borrowerOperations.openTrove(th._100pct, dec(4, 28), await getOpenTroveLUSDAmount(dec(2, 30)), ZERO_ADDRESS, ZERO_ADDRESS, { from: F })
-  
+
     // Make 10 tiny troves at relatively negligible collateral (~1e-9 of total)
     const tinyTroves = accounts.slice(10, 20)
     for (account of tinyTroves) {

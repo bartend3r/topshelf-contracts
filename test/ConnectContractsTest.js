@@ -16,8 +16,7 @@ contract('Deployment script - Sets correct contract addresses dependencies after
   let borrowerOperations
   let lqtyStaking
   let lqtyToken
-  let communityIssuance
-  let lockupContractFactory
+  let CommunityIssuance
 
   before(async () => {
     const coreContracts = await deploymentHelper.deployLiquityCore()
@@ -36,7 +35,6 @@ contract('Deployment script - Sets correct contract addresses dependencies after
     lqtyStaking = LQTYContracts.lqtyStaking
     lqtyToken = LQTYContracts.lqtyToken
     communityIssuance = LQTYContracts.communityIssuance
-    lockupContractFactory = LQTYContracts.lockupContractFactory
 
     await deploymentHelper.connectLQTYContracts(LQTYContracts)
     await deploymentHelper.connectCoreContracts(coreContracts, LQTYContracts)
@@ -310,24 +308,6 @@ contract('Deployment script - Sets correct contract addresses dependencies after
 
     const recordedcommunityIssuanceAddress = await lqtyToken.communityIssuanceAddress()
     assert.equal(communityIssuanceAddress, recordedcommunityIssuanceAddress)
-  })
-
-  // Sets LCF in LQTYToken
-  it('Sets the correct LockupContractFactory address in LQTYToken', async () => {
-    const LCFAddress = lockupContractFactory.address
-
-    const recordedLCFAddress =  await lqtyToken.lockupContractFactory()
-    assert.equal(LCFAddress, recordedLCFAddress)
-  })
-
-  // --- LCF  ---
-
-  // Sets LQTYToken in LockupContractFactory
-  it('Sets the correct LQTYToken address in LockupContractFactory', async () => {
-    const lqtyTokenAddress = lqtyToken.address
-
-    const recordedLQTYTokenAddress = await lockupContractFactory.lqtyTokenAddress()
-    assert.equal(lqtyTokenAddress, recordedLQTYTokenAddress)
   })
 
   // --- CI ---

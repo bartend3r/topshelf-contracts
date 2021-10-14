@@ -36,7 +36,6 @@ contract('Access Control: Liquity functions with the caller restricted to Liquit
   let lqtyStaking
   let lqtyToken
   let communityIssuance
-  let lockupContractFactory
   let collateralAmount = dec(40000, 18);
 
   before(async () => {
@@ -59,7 +58,6 @@ contract('Access Control: Liquity functions with the caller restricted to Liquit
     lqtyStaking = LQTYContracts.lqtyStaking
     lqtyToken = LQTYContracts.lqtyToken
     communityIssuance = LQTYContracts.communityIssuance
-    lockupContractFactory = LQTYContracts.lockupContractFactory
 
     await deploymentHelper.connectLQTYContracts(LQTYContracts)
     await deploymentHelper.connectCoreContracts(coreContracts, LQTYContracts)
@@ -491,37 +489,6 @@ contract('Access Control: Liquity functions with the caller restricted to Liquit
         assert.include(err.message, "revert")
         assert.include(err.message, "Caller is neither BO nor TroveM")
       }
-    })
-  })
-
-  describe('LockupContract', async accounts => {
-    it("withdrawLQTY(): reverts when caller is not beneficiary", async () => {
-      // deploy new LC with Carol as beneficiary
-      const unlockTime = (await lqtyToken.getDeploymentStartTime()).add(toBN(timeValues.SECONDS_IN_ONE_YEAR))
-      const deployedLCtx = await lockupContractFactory.deployLockupContract(
-        carol,
-        unlockTime,
-        { from: owner })
-
-      const LC = await th.getLCFromDeploymentTx(deployedLCtx)
-
-      // LQTY Multisig funds the LC
-      await lqtyToken.transfer(LC.address, dec(100, 18), { from: multisig })
-
-      // Fast-forward one year, so that beneficiary can withdraw
-      await th.fastForwardTime(timeValues.SECONDS_IN_ONE_YEAR, web3.currentProvider)
-
-      // Bob attempts to withdraw LQTY
-      try {
-        const txBob = await LC.withdrawLQTY({ from: bob })
-
-      } catch (err) {
-        assert.include(err.message, "revert")
-      }
-
-      // Confirm beneficiary, Carol, can withdraw
-      const txCarol = await LC.withdrawLQTY({ from: carol })
-      assert.isTrue(txCarol.receipt.status)
     })
   })
 

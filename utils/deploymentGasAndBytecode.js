@@ -11,7 +11,6 @@ const BorrowerOperations = artifacts.require("./BorrowerOperations.sol")
 
 const LQTYStaking = artifacts.require("./LQTY/LQTYStaking.sol")
 const LQTYToken = artifacts.require("./LQTY/LQTYToken.sol")
-const LockupContractFactory = artifacts.require("./LQTY/LockupContractFactory.sol")
 const CommunityIssuance = artifacts.require("./LQTY/CommunityIssuance.sol")
 const HintHelpers = artifacts.require("./HintHelpers.sol")
 
@@ -44,7 +43,6 @@ const coreContractABIs = [
 const LQTYContractABIs = [
   LQTYStaking,
   LQTYToken,
-  LockupContractFactory,
   CommunityIssuance
 ]
 
@@ -113,7 +111,6 @@ async function main() {
   const testerContracts = await dh.deployTesterContractsHardhat()
 
   await dh.connectCoreContracts(coreContracts, LQTYContracts)
-  await dh.connectLQTYContracts(LQTYContracts)
   await dh.connectLQTYContractsToCore(LQTYContracts, coreContracts)
 
 
