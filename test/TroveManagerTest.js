@@ -78,7 +78,6 @@ contract('TroveManager', async accounts => {
     communityIssuance = LQTYContracts.communityIssuance
 
     await deploymentHelper.connectCoreContracts(contracts, LQTYContracts)
-    await deploymentHelper.connectLQTYContracts(LQTYContracts)
     await deploymentHelper.connectLQTYContractsToCore(LQTYContracts, contracts)
     for (account of accounts.slice(0, 31)) {
       await contracts.collateral.faucet(account, collateralAmount)

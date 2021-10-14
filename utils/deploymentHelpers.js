@@ -180,10 +180,8 @@ class DeploymentHelper {
 
     // Deploy LQTY Token, passing Community Issuance and Factory addresses to the constructor
     const lqtyToken = await LQTYTokenTester.new(
-      communityIssuance.address,
-      bountyAddress,
-      lpRewardsAddress,
-      multisigAddress
+        [communityIssuance.address, bountyAddress, lpRewardsAddress, multisigAddress],
+        ["32000000000000000000000000", "2000000000000000000000000", "1333333333333333333333333", "64666666666666666666666667"],
     )
     LQTYTokenTester.setAsDeployed(lqtyToken)
 

@@ -1,6 +1,5 @@
 
 const BN = require('bn.js')
-const LockupContract = artifacts.require(("./LockupContract.sol"))
 const Destructible = artifacts.require("./TestContracts/Destructible.sol")
 
 
