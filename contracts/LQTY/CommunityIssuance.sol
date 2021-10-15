@@ -4,6 +4,7 @@ pragma solidity 0.6.11;
 
 import "../Dependencies/IERC20.sol";
 import "../Interfaces/ICommunityIssuance.sol";
+import "../Interfaces/ILQTYTreasury.sol";
 import "../Dependencies/BaseMath.sol";
 import "../Dependencies/LiquityMath.sol";
 import "../Dependencies/Ownable.sol";
@@ -48,7 +49,7 @@ contract CommunityIssuance is ICommunityIssuance, Ownable, CheckContract, BaseMa
     address public stabilityPoolAddress;
 
     uint public totalLQTYIssued;
-    uint public immutable deploymentTime;
+    uint public issuanceStartTime;
 
     // --- Events ---
 
@@ -59,7 +60,6 @@ contract CommunityIssuance is ICommunityIssuance, Ownable, CheckContract, BaseMa
     // --- Functions ---
 
     constructor(uint _supplyCap, uint _issuanceFactor) public {
-        deploymentTime = block.timestamp;
         LQTYSupplyCap = _supplyCap;
         ISSUANCE_FACTOR = _issuanceFactor;
     }
@@ -80,6 +80,7 @@ contract CommunityIssuance is ICommunityIssuance, Ownable, CheckContract, BaseMa
         lqtyToken = IERC20(_lqtyTokenAddress);
         stabilityPoolAddress = _stabilityPoolAddress;
         lqtyTreasury = _lqtyTreasuryAddress;
+        issuanceStartTime = ILQTYTreasury(_lqtyTreasuryAddress).issuanceStartTime();
 
         require(lqtyToken.allowance(_lqtyTreasuryAddress, address(this)) >= LQTYSupplyCap);
 
@@ -106,8 +107,10 @@ contract CommunityIssuance is ICommunityIssuance, Ownable, CheckContract, BaseMa
     f: issuance factor that determines the shape of the curve
     t:  time passed since last LQTY issuance event  */
     function _getCumulativeIssuanceFraction() internal view returns (uint) {
+        if (block.timestamp < issuanceStartTime) return 0;
+
         // Get the time passed since deployment
-        uint timePassedInMinutes = block.timestamp.sub(deploymentTime).div(SECONDS_IN_ONE_MINUTE);
+        uint timePassedInMinutes = block.timestamp.sub(issuanceStartTime).div(SECONDS_IN_ONE_MINUTE);
 
         // f^t
         uint power = LiquityMath._decPow(ISSUANCE_FACTOR, timePassedInMinutes);

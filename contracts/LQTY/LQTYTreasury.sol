@@ -13,9 +13,15 @@ contract LQTYTreasury is Ownable {
 
     string constant public NAME = "LQTYTreasury";
 
+    uint public immutable issuanceStartTime;
     uint public totalSupplyCap;
     IERC20 public token;
     address[] public issuers;
+
+    constructor(uint _issuanceStartTime) public {
+        if (_issuanceStartTime == 0) _issuanceStartTime = block.timestamp;
+        issuanceStartTime = _issuanceStartTime;
+    }
 
     function setAddresses(IERC20 _token, address[] memory _issuers) external onlyOwner {
         token = _token;
