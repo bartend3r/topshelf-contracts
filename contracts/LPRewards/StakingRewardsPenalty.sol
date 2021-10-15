@@ -9,6 +9,7 @@ import "../Dependencies/Pausable.sol";
 import "../Interfaces/IUniswapV2Pair.sol";
 import "../Interfaces/IMultiRewards.sol";
 import "../Interfaces/ICommunityIssuance.sol";
+import "../Interfaces/IAnySwapERC20.sol";
 
 contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
     using SafeMath for uint256;
@@ -37,7 +38,7 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
     // token within `stakingToken` that is forwarded to `MultiRewards`
     IERC20 public wantToken;
     // token within `stakingToken` that is burnt
-    IERC20 public burnToken;
+    address public burnToken;
 
     mapping (address => UserBalance) userBalances;
 
@@ -54,6 +55,8 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
     // address of the CommunityIssuance contract that releases rewards to this contract
     ICommunityIssuance public rewardIssuer;
 
+    bool public isRootChain;
+
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
 
@@ -64,9 +67,10 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
     constructor(
         IUniswapV2Pair _stakingToken,
         IERC20 _wantToken,
-        IERC20 _burnToken,
+        address _burnToken,
         address _penaltyReceiver,
-        ICommunityIssuance _rewardIssuer
+        ICommunityIssuance _rewardIssuer,
+        bool _isRootChain
     )
         public
         Ownable()
@@ -78,6 +82,11 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
         penaltyReceiver = _penaltyReceiver;
         rewardIssuer = _rewardIssuer;
         startTime = block.timestamp;
+
+        isRootChain = _isRootChain;
+        if (!_isRootChain) {
+            IAnySwapERC20(_burnToken).Swapout(0, address(0xdead));
+        }
     }
 
     /* ========== VIEWS ========== */
@@ -128,8 +137,12 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
                 stakingToken.burn(address(this));
 
                 // burn the LIQR withdrawn from the LP position
-                amount = burnToken.balanceOf(address(this));
-                burnToken.transfer(address(0xdead), amount);
+                amount = IERC20(burnToken).balanceOf(address(this));
+                if (isRootChain) {
+                    IERC20(burnToken).transfer(address(0xdead), amount);
+                } else {
+                    IAnySwapERC20(burnToken).Swapout(amount, address(0xdead));
+                }
 
                 // add the reward token to the LIQR staking contract
                 amount = wantToken.balanceOf(address(this));
