@@ -32,8 +32,6 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
         Deposit[] deposits;
     }
 
-    // token being rewarded to stakers
-    IERC20 public rewardsToken;
     // token to stake - must be a UniV2 LP token
     IUniswapV2Pair public stakingToken;
     // token within `stakingToken` that is forwarded to `MultiRewards`
@@ -43,7 +41,6 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
 
     mapping (address => UserBalance) userBalances;
 
-    address[] public rewardTokens;
     uint256 public constant rewardsDuration = 86400 * 7;
 
     // each index is the total amount collected over 1 week
@@ -65,7 +62,6 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
     /* ========== CONSTRUCTOR ========== */
 
     constructor(
-        IERC20 _rewardsToken,
         IUniswapV2Pair _stakingToken,
         IERC20 _wantToken,
         IERC20 _burnToken,
@@ -75,7 +71,6 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
         public
         Ownable()
     {
-        rewardsToken = _rewardsToken;
         stakingToken = _stakingToken;
         wantToken = _wantToken;
         burnToken = _burnToken;
@@ -217,7 +212,7 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
         uint256 reward = rewards[msg.sender];
         if (reward > 0) {
             rewards[msg.sender] = 0;
-            rewardsToken.safeTransfer(msg.sender, reward);
+            rewardIssuer.sendLQTY(msg.sender, reward);
             emit RewardPaid(msg.sender, reward);
         }
     }
@@ -249,7 +244,6 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
         if (lastUpdateTime < block.timestamp) {
             // once the reward period has finished, call the issuer to receive new rewards
             uint256 issuance = rewardIssuer.issueLQTY();
-            rewardIssuer.sendLQTY(address(this), issuance);
             rewardRate = issuance.div(rewardsDuration);
             lastUpdateTime = block.timestamp;
             periodFinish = block.timestamp.add(rewardsDuration);
