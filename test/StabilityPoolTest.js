@@ -62,6 +62,8 @@ contract('StabilityPool', async accounts => {
       contracts.troveManager = await TroveManagerTester.new()
       const LQTYContracts = await deploymentHelper.deployLQTYContracts(bountyAddress, lpRewardsAddress, multisig)
       contracts.lusdToken = await LUSDToken.new(
+        "LUSD Stablecoin",
+        "LUSD",
         contracts.troveManager.address,
         contracts.stabilityPool.address,
         contracts.borrowerOperations.address,
