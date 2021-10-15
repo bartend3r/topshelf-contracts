@@ -200,7 +200,7 @@ contract('StabilityPool - LQTY Rewards', async accounts => {
 
     // using the result of this to advance time by the desired amount from the deployment time, whether or not some extra time has passed in the meanwhile
     const getDuration = async (expectedDuration) => {
-      const deploymentTime = (await communityIssuanceTester.deploymentTime()).toNumber()
+      const deploymentTime = (await communityIssuanceTester.issuanceStartTime()).toNumber()
       const currentTime = await th.getLatestBlockTimestamp(web3)
       const duration = Math.max(expectedDuration - (currentTime - deploymentTime), 0)
       // console.log('deploymentTime', deploymentTime);
@@ -1172,7 +1172,7 @@ contract('StabilityPool - LQTY Rewards', async accounts => {
 
       th.assertIsApproximatelyEqual(await stabilityPool.getTotalLUSDDeposits(), dec(60000, 18))
 
-      const startTime = await communityIssuanceTester.deploymentTime()
+      const startTime = await communityIssuanceTester.issuanceStartTime()
       const currentTime = await th.getLatestBlockTimestamp(web3)
       const timePassed = toBN(currentTime).sub(startTime)
 
