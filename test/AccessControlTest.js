@@ -77,7 +77,7 @@ contract('Access Control: Liquity functions with the caller restricted to Liquit
     const expectedCISupplyCap = '32000000000000000000000000' // 32mil
 
     // Check CI has been properly funded
-    const bal = await lqtyToken.balanceOf(communityIssuance.address)
+    const bal = await lqtyToken.balanceOf(LQTYContracts.lqtyTreasury.address)
     assert.equal(bal, expectedCISupplyCap)
   })
 

@@ -40,9 +40,10 @@ contract CommunityIssuance is ICommunityIssuance, Ownable, CheckContract, BaseMa
     * The community LQTY supply cap is the starting balance of the Community Issuance contract.
     * It should be minted to this contract by LQTYToken, when the token is deployed.
     */
-    uint public immutable LQTYSupplyCap;
+    uint public override immutable LQTYSupplyCap;
 
     IERC20 public lqtyToken;
+    address public lqtyTreasury;
 
     address public stabilityPoolAddress;
 
@@ -66,7 +67,8 @@ contract CommunityIssuance is ICommunityIssuance, Ownable, CheckContract, BaseMa
     function setAddresses
     (
         address _lqtyTokenAddress,
-        address _stabilityPoolAddress
+        address _stabilityPoolAddress,
+        address _lqtyTreasuryAddress
     )
         external
         onlyOwner
@@ -77,10 +79,9 @@ contract CommunityIssuance is ICommunityIssuance, Ownable, CheckContract, BaseMa
 
         lqtyToken = IERC20(_lqtyTokenAddress);
         stabilityPoolAddress = _stabilityPoolAddress;
+        lqtyTreasury = _lqtyTreasuryAddress;
 
-        // full token entitlement for this contract must be transferred in prior to calling setAddresses
-        uint LQTYBalance = lqtyToken.balanceOf(address(this));
-        assert(LQTYBalance >= LQTYSupplyCap);
+        require(lqtyToken.allowance(_lqtyTreasuryAddress, address(this)) >= LQTYSupplyCap);
 
         emit LQTYTokenAddressSet(_lqtyTokenAddress);
         emit StabilityPoolAddressSet(_stabilityPoolAddress);
@@ -121,7 +122,7 @@ contract CommunityIssuance is ICommunityIssuance, Ownable, CheckContract, BaseMa
     function sendLQTY(address _account, uint _LQTYamount) external override {
         _requireCallerIsStabilityPool();
 
-        lqtyToken.transfer(_account, _LQTYamount);
+        lqtyToken.transferFrom(lqtyTreasury, _account, _LQTYamount);
     }
 
     // --- 'require' functions ---

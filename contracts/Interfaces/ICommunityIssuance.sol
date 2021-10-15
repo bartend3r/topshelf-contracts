@@ -2,17 +2,19 @@
 
 pragma solidity 0.6.11;
 
-interface ICommunityIssuance { 
-    
+interface ICommunityIssuance {
+
     // --- Events ---
-    
+
     event LQTYTokenAddressSet(address _lqtyTokenAddress);
     event StabilityPoolAddressSet(address _stabilityPoolAddress);
     event TotalLQTYIssuedUpdated(uint _totalLQTYIssued);
 
     // --- Functions ---
 
-    function setAddresses(address _lqtyTokenAddress, address _stabilityPoolAddress) external;
+    function LQTYSupplyCap() external view returns (uint);
+
+    function setAddresses(address _lqtyTokenAddress, address _stabilityPoolAddress, address _lqtyTreasuryAddress) external;
 
     function issueLQTY() external returns (uint);
 
