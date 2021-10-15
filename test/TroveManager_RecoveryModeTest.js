@@ -57,6 +57,8 @@ contract('TroveManager - in Recovery Mode', async accounts => {
     contracts = await deploymentHelper.deployLiquityCore()
     contracts.troveManager = await TroveManagerTester.new()
     contracts.lusdToken = await LUSDToken.new(
+      "LUSD Stablecoin",
+      "LUSD",
       contracts.troveManager.address,
       contracts.stabilityPool.address,
       contracts.borrowerOperations.address,
