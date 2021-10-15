@@ -85,12 +85,13 @@ contract('StabilityPool - LQTY Rewards', async accounts => {
 
       lqtyToken = LQTYContracts.lqtyToken
       communityIssuanceTester = LQTYContracts.communityIssuance
+      lqtyTreasury = LQTYContracts.lqtyTreasury
 
       await deploymentHelper.connectCoreContracts(contracts, LQTYContracts)
       await deploymentHelper.connectLQTYContractsToCore(LQTYContracts, contracts)
 
       // Check community issuance starts with 32 million LQTY
-      communityLQTYSupply = toBN(await lqtyToken.balanceOf(communityIssuanceTester.address))
+      communityLQTYSupply = toBN(await lqtyToken.balanceOf(lqtyTreasury.address))
       assert.isAtMost(getDifference(communityLQTYSupply, '32000000000000000000000000'), 1000)
 
       /* Monthly LQTY issuance
@@ -634,7 +635,7 @@ contract('StabilityPool - LQTY Rewards', async accounts => {
     })
 
     it('LQTY issuance for a given period is not obtainable if the SP was empty during the period', async () => {
-      const CIBalanceBefore = await lqtyToken.balanceOf(communityIssuanceTester.address)
+      const CIBalanceBefore = await lqtyToken.balanceOf(lqtyTreasury.address)
 
       await borrowerOperations.openTrove(th._100pct, dec(200, 'ether'), dec(16000, 18), A, A, { from: A })
       await borrowerOperations.openTrove(th._100pct, dec(100, 'ether'), dec(10000, 18), B, B, { from: B })
@@ -717,7 +718,7 @@ contract('StabilityPool - LQTY Rewards', async accounts => {
 
       // Check CI has only transferred out tokens for M2 + M4.  1e-3 error tolerance.
       const expectedLQTYSentOutFromCI = issuance_M2.add(issuance_M4)
-      const CIBalanceAfter = await lqtyToken.balanceOf(communityIssuanceTester.address)
+      const CIBalanceAfter = await lqtyToken.balanceOf(lqtyTreasury.address)
       const CIBalanceDifference = CIBalanceBefore.sub(CIBalanceAfter)
       assert.isAtMost(getDifference(CIBalanceDifference, expectedLQTYSentOutFromCI), 1e15)
     })
