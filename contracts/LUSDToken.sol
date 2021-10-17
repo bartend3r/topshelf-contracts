@@ -60,6 +60,9 @@ contract LUSDToken is CheckContract, ILUSDToken {
     address public immutable borrowerOperationsAddress;
     address public immutable flashLenderAddress;
 
+    bool public isPaused;
+    address public override shutdownAdmin;
+
     // --- Events ---
     event TroveManagerAddressChanged(address _troveManagerAddress);
     event StabilityPoolAddressChanged(address _newStabilityPoolAddress);
@@ -72,7 +75,8 @@ contract LUSDToken is CheckContract, ILUSDToken {
         address _troveManagerAddress,
         address _stabilityPoolAddress,
         address _borrowerOperationsAddress,
-        address _flashLenderAddress
+        address _flashLenderAddress,
+        address _shutdownAdminAddress
     )
         public
     {
@@ -93,6 +97,7 @@ contract LUSDToken is CheckContract, ILUSDToken {
         emit BorrowerOperationsAddressChanged(_borrowerOperationsAddress);
 
         flashLenderAddress = _flashLenderAddress;
+        shutdownAdmin = _shutdownAdminAddress;
 
         bytes32 hashedName = keccak256(bytes(_name));
         bytes32 hashedVersion = keccak256(bytes(_VERSION));
@@ -103,10 +108,16 @@ contract LUSDToken is CheckContract, ILUSDToken {
         _CACHED_DOMAIN_SEPARATOR = _buildDomainSeparator(_TYPE_HASH, hashedName, hashedVersion);
     }
 
+    function setPaused(bool _isPaused) external override {
+        require(msg.sender == shutdownAdmin);
+        isPaused = _isPaused;
+    }
+
     // --- Functions for intra-Liquity calls ---
 
     function mint(address _account, uint256 _amount) external override {
         _requireCallerIsBorrowerOperations();
+        require(!isPaused, "Minting is paused");
         _mint(_account, _amount);
     }
 

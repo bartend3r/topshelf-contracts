@@ -8,11 +8,10 @@ import "../Interfaces/ILQTYTreasury.sol";
 import "../Dependencies/BaseMath.sol";
 import "../Dependencies/LiquityMath.sol";
 import "../Dependencies/Ownable.sol";
-import "../Dependencies/CheckContract.sol";
 import "../Dependencies/SafeMath.sol";
 
 
-contract CommunityIssuance is ICommunityIssuance, Ownable, CheckContract, BaseMath {
+contract CommunityIssuance is ICommunityIssuance, Ownable, BaseMath {
     using SafeMath for uint;
 
     // --- Data ---
@@ -51,6 +50,9 @@ contract CommunityIssuance is ICommunityIssuance, Ownable, CheckContract, BaseMa
     uint public totalLQTYIssued;
     uint public issuanceStartTime;
 
+    bool public isPaused;
+    address public override shutdownAdmin;
+
     // --- Events ---
 
     event LQTYTokenAddressSet(address _lqtyTokenAddress);
@@ -68,18 +70,17 @@ contract CommunityIssuance is ICommunityIssuance, Ownable, CheckContract, BaseMa
     (
         address _lqtyTokenAddress,
         address _stabilityPoolAddress,
-        address _lqtyTreasuryAddress
+        address _lqtyTreasuryAddress,
+        address _shutdownAdminAddress
     )
         external
         onlyOwner
         override
     {
-        checkContract(_lqtyTokenAddress);
-        checkContract(_stabilityPoolAddress);
-
         lqtyToken = IERC20(_lqtyTokenAddress);
         stabilityPoolAddress = _stabilityPoolAddress;
         lqtyTreasury = _lqtyTreasuryAddress;
+        shutdownAdmin = _shutdownAdminAddress;
         issuanceStartTime = ILQTYTreasury(_lqtyTreasuryAddress).issuanceStartTime();
 
         require(lqtyToken.allowance(_lqtyTreasuryAddress, address(this)) >= LQTYSupplyCap);
@@ -90,6 +91,11 @@ contract CommunityIssuance is ICommunityIssuance, Ownable, CheckContract, BaseMa
         _renounceOwnership();
     }
 
+    function setPaused(bool _isPaused) external override {
+        require(msg.sender == shutdownAdmin);
+        isPaused = _isPaused;
+    }
+
     function issueLQTY() external override returns (uint) {
         _requireCallerIsStabilityPool();
 
@@ -98,6 +104,10 @@ contract CommunityIssuance is ICommunityIssuance, Ownable, CheckContract, BaseMa
 
         totalLQTYIssued = latestTotalLQTYIssued;
         emit TotalLQTYIssuedUpdated(latestTotalLQTYIssued);
+
+        // when the system is paused we still advance the issued amount, but always return 0
+        // this way we avoid a sudden supply shock if we later unpause
+        if (isPaused) return 0;
 
         return issuance;
     }

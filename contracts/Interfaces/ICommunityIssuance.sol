@@ -12,9 +12,13 @@ interface ICommunityIssuance {
 
     // --- Functions ---
 
+    function setPaused(bool _isPaused) external;
+
+    function shutdownAdmin() external view returns (address);
+
     function LQTYSupplyCap() external view returns (uint);
 
-    function setAddresses(address _lqtyTokenAddress, address _stabilityPoolAddress, address _lqtyTreasuryAddress) external;
+    function setAddresses(address _lqtyTokenAddress, address _stabilityPoolAddress, address _lqtyTreasuryAddress, address _shutdownAdminAddress) external;
 
     function issueLQTY() external returns (uint);
 

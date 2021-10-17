@@ -5,8 +5,8 @@ pragma solidity 0.6.11;
 import "../Dependencies/IERC20.sol";
 import "../Dependencies/IERC2612.sol";
 
-interface ILUSDToken is IERC20, IERC2612 { 
-    
+interface ILUSDToken is IERC20, IERC2612 {
+
     // --- Events ---
 
     event TroveManagerAddressChanged(address _troveManagerAddress);
@@ -16,6 +16,10 @@ interface ILUSDToken is IERC20, IERC2612 {
     event LUSDTokenBalanceUpdated(address _user, uint _amount);
 
     // --- Functions ---
+
+    function setPaused(bool _isPaused) external;
+
+    function shutdownAdmin() external view returns (address);
 
     function mint(address _account, uint256 _amount) external;
 
