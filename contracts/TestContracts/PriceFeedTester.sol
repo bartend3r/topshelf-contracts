@@ -10,9 +10,8 @@ contract PriceFeedTester is PriceFeed {
         address _chainlinkOracleAddress,
         address _bandOracleAddress,
         address _baseStableSwap,
-        string memory _bandBase,
-        string memory _bandQuote
-    ) public PriceFeed(_chainlinkOracleAddress, _bandOracleAddress, _baseStableSwap, _bandBase, _bandQuote) {}
+        string memory _bandBase
+    ) public PriceFeed(_chainlinkOracleAddress, _bandOracleAddress, _baseStableSwap, _bandBase) {}
 
     function setLastGoodPrice(uint _lastGoodPrice) external {
         lastGoodPrice = _lastGoodPrice;
