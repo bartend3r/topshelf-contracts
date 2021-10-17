@@ -81,7 +81,8 @@ contract('HintHelpers', async accounts => {
       contracts.troveManager.address,
       contracts.stabilityPool.address,
       contracts.borrowerOperations.address,
-      contracts.flashLender.address
+      contracts.flashLender.address,
+      contracts.systemShutdown.address,
     )
     const LQTYContracts = await deploymentHelper.deployLQTYContracts(bountyAddress, lpRewardsAddress, multisig)
 

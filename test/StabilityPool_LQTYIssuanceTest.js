@@ -58,7 +58,8 @@ contract('StabilityPool - LQTY Rewards', async accounts => {
         contracts.troveManager.address,
         contracts.stabilityPool.address,
         contracts.borrowerOperations.address,
-        contracts.flashLender.address
+        contracts.flashLender.address,
+        contracts.systemShutdown.address,
       )
       // this adds too much time to the process and as a result tests fail.
       // to make this work this needs to run before the deployment below.
