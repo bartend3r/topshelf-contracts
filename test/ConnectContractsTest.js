@@ -299,15 +299,6 @@ contract('Deployment script - Sets correct contract addresses dependencies after
   //   assert.equal(borrowerOperationsAddress, recordedBorrowerOperationsAddress)
   // })
 
-  // ---  LQTYToken ---
-
-  // Sets CI in LQTYToken
-  it('Sets the correct CommunityIssuance address in LQTYToken', async () => {
-    const communityIssuanceAddress = communityIssuance.address
-
-    const recordedcommunityIssuanceAddress = await lqtyToken.communityIssuanceAddress()
-    assert.equal(communityIssuanceAddress, recordedcommunityIssuanceAddress)
-  })
 
   // --- CI ---
 
