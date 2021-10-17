@@ -67,7 +67,8 @@ contract('StabilityPool', async accounts => {
         contracts.troveManager.address,
         contracts.stabilityPool.address,
         contracts.borrowerOperations.address,
-        contracts.flashLender.address
+        contracts.flashLender.address,
+        contracts.systemShutdown.address,
       )
       priceFeed = contracts.priceFeedTestnet
       lusdToken = contracts.lusdToken

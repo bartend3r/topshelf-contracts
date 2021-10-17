@@ -11,6 +11,7 @@ const FunctionCaller = artifacts.require("./TestContracts/FunctionCaller.sol")
 const BorrowerOperations = artifacts.require("./BorrowerOperations.sol")
 const HintHelpers = artifacts.require("./HintHelpers.sol")
 const FlashLender = artifacts.require("./FlashLender.sol")
+const SystemShutdown = artifacts.require("./SystemShutdown.sol")
 
 const LQTYStaking = artifacts.require("./MultiRewards.sol")
 const LQTYToken = artifacts.require("./LQTYToken.sol")
@@ -79,13 +80,15 @@ class DeploymentHelper {
     const borrowerOperations = await BorrowerOperations.new()
     const hintHelpers = await HintHelpers.new()
     const flashLender = await FlashLender.new()
+    const systemShutdown = await SystemShutdown.new()
     const lusdToken = await LUSDToken.new(
       "LUSD Stablecoin",
       "LUSD",
       troveManager.address,
       stabilityPool.address,
       borrowerOperations.address,
-      flashLender.address
+      flashLender.address,
+      systemShutdown.address
     )
     const collateral = await MockCollateral.new("Collateral", "CLT")
 
@@ -103,6 +106,7 @@ class DeploymentHelper {
     HintHelpers.setAsDeployed(hintHelpers)
     MockCollateral.setAsDeployed(collateral)
     FlashLender.setAsDeployed(flashLender)
+    SystemShutdown.setAsDeployed(systemShutdown)
 
     const coreContracts = {
       priceFeedTestnet,
@@ -118,7 +122,8 @@ class DeploymentHelper {
       borrowerOperations,
       hintHelpers,
       collateral,
-      flashLender
+      flashLender,
+      systemShutdown
     }
     return coreContracts
   }
@@ -129,6 +134,7 @@ class DeploymentHelper {
     // Contract without testers (yet)
     testerContracts.priceFeedTestnet = await PriceFeedTestnet.new()
     testerContracts.sortedTroves = await SortedTroves.new()
+    testerContracts.systemShutdown = await SystemShutdown.new()
     // Actual tester contracts
     testerContracts.communityIssuance = await CommunityIssuanceTester.new("32000000000000000000000000", "999998681227695000")
     testerContracts.activePool = await ActivePoolTester.new()
@@ -149,6 +155,7 @@ class DeploymentHelper {
       testerContracts.stabilityPool.address,
       testerContracts.borrowerOperations.address,
       testerContracts.flashLender.address,
+      testerContracts.systemShutdown.address,
     )
     testerContracts.collateral = await MockCollateral.new("Collateral", "CLT")
     return testerContracts
@@ -265,7 +272,8 @@ class DeploymentHelper {
       contracts.troveManager.address,
       contracts.stabilityPool.address,
       contracts.borrowerOperations.address,
-      contracts.flashLender.address
+      contracts.flashLender.address,
+      contracts.systemShutdown.address,
     )
     return contracts
   }
@@ -277,7 +285,8 @@ class DeploymentHelper {
       contracts.troveManager.address,
       contracts.stabilityPool.address,
       contracts.borrowerOperations.address,
-      contracts.flashLender.address
+      contracts.flashLender.address,
+      contracts.systemShutdown.address,
     )
     return contracts
   }
@@ -384,7 +393,8 @@ class DeploymentHelper {
     await LQTYContracts.communityIssuance.setAddresses(
       LQTYContracts.lqtyToken.address,
       coreContracts.stabilityPool.address,
-      LQTYContracts.lqtyTreasury.address
+      LQTYContracts.lqtyTreasury.address,
+      coreContracts.systemShutdown.address,
     )
   }
 
