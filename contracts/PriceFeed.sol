@@ -27,10 +27,14 @@ contract PriceFeed is CheckContract, BaseMath, IPriceFeed {
 
     AggregatorV3Interface public chainlinkOracle;  // Mainnet Chainlink aggregator
     IStdReference public bandOracle;  // Wrapper contract that calls the Band system
-    IStableSwap public baseStableSwap;
 
     string bandBase;
-    string bandQuote;
+    string constant bandQuote = "USD";
+
+    // StableSwap pool address for the LP token being used as collateral
+    // when this variable is non-zero, the returned oracle responses are
+    // given with a reversed `bandBase` and `bandQuote`
+    IStableSwap public immutable baseStableSwap;
 
     // Core Liquity contracts
     address borrowerOperationsAddress;
@@ -88,8 +92,7 @@ contract PriceFeed is CheckContract, BaseMath, IPriceFeed {
         address _chainlinkOracleAddress,
         address _bandOracleAddress,
         address _baseStableSwap,
-        string memory _bandBase,
-        string memory _bandQuote
+        string memory _bandBase
     )
         public
     {
@@ -98,12 +101,10 @@ contract PriceFeed is CheckContract, BaseMath, IPriceFeed {
 
         chainlinkOracle = AggregatorV3Interface(_chainlinkOracleAddress);
         bandOracle = IStdReference(_bandOracleAddress);
+        bandBase = _bandBase;
 
         // set to address(0) if the base asset is not a Curve LP token
         baseStableSwap = IStableSwap(_baseStableSwap);
-
-        bandBase = _bandBase;
-        bandQuote = _bandQuote;
 
         // Explicitly set initial system status
         status = Status.chainlinkWorking;
@@ -135,7 +136,7 @@ contract PriceFeed is CheckContract, BaseMath, IPriceFeed {
     function fetchPrice() external override returns (uint) {
         uint price = _fetchPrice();
         if (baseStableSwap != IStableSwap(0)) {
-            price = price.mul(baseStableSwap.get_virtual_price()).div(10**18);
+            return baseStableSwap.get_virtual_price().mul(10**18).div(price);
         }
         return price;
     }

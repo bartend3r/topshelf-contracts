@@ -91,6 +91,12 @@ contract CommunityIssuance is ICommunityIssuance, Ownable, BaseMath {
         _renounceOwnership();
     }
 
+    function setStabilityPool(address _stabilityPoolAddress) external {
+        // in a case where the receiver is not a smart contract, we must be able to redirect
+        require(msg.sender == stabilityPoolAddress);
+        stabilityPoolAddress = _stabilityPoolAddress;
+    }
+
     function setPaused(bool _isPaused) external override {
         require(msg.sender == shutdownAdmin);
         isPaused = _isPaused;
