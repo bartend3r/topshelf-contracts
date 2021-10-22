@@ -43,6 +43,7 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
     mapping (address => UserBalance) userBalances;
 
     uint256 public constant rewardsDuration = 86400 * 7;
+    uint256 public constant rewardsUpdateFrequency = 3600;
 
     // each index is the total amount collected over 1 week
     uint256[65535] penaltyAmounts;
@@ -254,10 +255,16 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
             userRewardPerTokenPaid[account] = rewardPerTokenStored;
         }
         _;
-        if (lastUpdateTime < block.timestamp) {
-            // once the reward period has finished, call the issuer to receive new rewards
+        if (periodFinish < block.timestamp.add(rewardsDuration).sub(rewardsUpdateFrequency)) {
+            // if last reward update was more than `rewardsUpdateFrequency` seconds ago, update again
             uint256 issuance = rewardIssuer.issueLQTY();
-            rewardRate = issuance.div(rewardsDuration);
+            if (block.timestamp >= periodFinish) {
+                rewardRate = issuance.div(rewardsDuration);
+            } else {
+                uint256 remaining = periodFinish.sub(block.timestamp);
+                uint256 leftover = remaining.mul(rewardRate);
+                rewardRate = issuance.add(leftover).div(rewardsDuration);
+            }
             lastUpdateTime = block.timestamp;
             periodFinish = block.timestamp.add(rewardsDuration);
             emit RewardAdded(issuance);
