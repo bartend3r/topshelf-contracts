@@ -56,6 +56,8 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
     // address of the CommunityIssuance contract that releases rewards to this contract
     ICommunityIssuance public rewardIssuer;
 
+    address public treasury;
+
     bool public isRootChain;
 
     mapping(address => uint256) public userRewardPerTokenPaid;
@@ -71,6 +73,7 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
         address _burnToken,
         address _penaltyReceiver,
         ICommunityIssuance _rewardIssuer,
+        address _treasury,
         bool _isRootChain
     )
         public
@@ -82,6 +85,7 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
 
         penaltyReceiver = _penaltyReceiver;
         rewardIssuer = _rewardIssuer;
+        treasury = _treasury;
         startTime = block.timestamp;
 
         isRootChain = _isRootChain;
@@ -138,6 +142,10 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
                 penaltyIndex++;
             }
             if (amount > 0) {
+                // transfer 50% of penalty tokens to treasury
+                amount = amount.div(2);
+                stakingToken.transfer(treasury, amount);
+
                 // withdraw LP position
                 stakingToken.transfer(address(stakingToken), amount);
                 stakingToken.burn(address(this));
@@ -165,8 +173,8 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
         require(amount > 0, "Cannot stake 0");
         stakingToken.transferFrom(msg.sender, address(this), amount);
 
-        // 1% penalty is applied upon deposit
-        uint256 penaltyAmount = amount.div(100);
+        // 2% penalty is applied upon deposit
+        uint256 penaltyAmount = amount.div(50);
         addPenaltyAmount(penaltyAmount);
         amount = amount.sub(penaltyAmount);
 
@@ -184,7 +192,7 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
     }
 
     /// `amount` is the total to withdraw inclusive of any penalty amounts to be paid.
-    /// the final balance received may be up to 4% less than `amount` depending upon
+    /// the final balance received may be up to 8% less than `amount` depending upon
     /// how recently the caller deposited
     function withdraw(uint256 amount) public nonReentrant updateReward(msg.sender) {
         require(amount > 0, "Cannot withdraw 0");
@@ -205,9 +213,9 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
             uint256 weeksSinceDeposit = timestamp.sub(dep.timestamp).div(604800);
             if (weeksSinceDeposit < 8) {
                 // for balances deposited less than 8 weeks ago, a withdrawal
-                // penalty is applied starting at 4% and decreasing by 0.5% every week
-                uint penaltyMultiplier = 1000 - (8 - weeksSinceDeposit) * 5;
-                amountAfterPenalty = amountAfterPenalty.add(weeklyAmount.mul(penaltyMultiplier).div(1000));
+                // penalty is applied starting at 8% and decreasing by 1% every week
+                uint penaltyMultiplier = 100 - (8 - weeksSinceDeposit);
+                amountAfterPenalty = amountAfterPenalty.add(weeklyAmount.mul(penaltyMultiplier).div(100));
             } else {
                 amountAfterPenalty = amountAfterPenalty.add(weeklyAmount);
             }
