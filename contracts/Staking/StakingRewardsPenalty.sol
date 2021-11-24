@@ -1,4 +1,5 @@
 pragma solidity 0.6.11;
+pragma experimental ABIEncoderV2;
 
 import "../Dependencies/IERC20.sol";
 import "../Dependencies/Math.sol";
@@ -108,7 +109,7 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
         deposits = userBalances[account].deposits;
         return deposits;
     }
-    
+
     function lastTimeRewardApplicable() public view returns (uint256) {
         return Math.min(block.timestamp, periodFinish);
     }
