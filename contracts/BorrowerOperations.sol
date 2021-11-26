@@ -99,7 +99,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
     event LUSDBorrowingFeePaid(address indexed _borrower, uint _LUSDFee);
 
 
-    constructor(uint _minNetDebt) public Ownable() {
+    constructor(uint _minNetDebt, uint _gasCompensation) public Ownable() LiquityBase(_gasCompensation) {
         setMinNetDebt(_minNetDebt);
     }
 
@@ -556,7 +556,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         require (_netDebt >= minNetDebt, "BorrowerOps: Trove's net debt must be greater than minimum");
     }
 
-    function _requireValidLUSDRepayment(uint _currentDebt, uint _debtRepayment) internal pure {
+    function _requireValidLUSDRepayment(uint _currentDebt, uint _debtRepayment) internal view {
         require(_debtRepayment <= _currentDebt.sub(LUSD_GAS_COMPENSATION), "BorrowerOps: Amount repaid must not be larger than the Trove's debt");
     }
 
@@ -664,7 +664,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         return newTCR;
     }
 
-    function getCompositeDebt(uint _debt) external pure override returns (uint) {
+    function getCompositeDebt(uint _debt) external view override returns (uint) {
         return _getCompositeDebt(_debt);
     }
 }

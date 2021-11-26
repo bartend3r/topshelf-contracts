@@ -23,6 +23,8 @@ contract HintHelpers is LiquityBase, Ownable, CheckContract {
 
     // --- Dependency setters ---
 
+    constructor(uint _gasCompensation) public Ownable() LiquityBase(_gasCompensation) {}
+
     function setAddresses(
         address _sortedTrovesAddress,
         address _troveManagerAddress,

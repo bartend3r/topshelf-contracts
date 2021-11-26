@@ -233,6 +233,8 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
     }
 
 
+    constructor(uint _gasCompensation) public Ownable() LiquityBase(_gasCompensation) {}
+
     // --- Dependency setter ---
 
     function setAddresses(
@@ -478,7 +480,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         uint _price
     )
         internal
-        pure
+        view
         returns (LiquidationValues memory singleLiquidation)
     {
         singleLiquidation.entireTroveDebt = _entireTroveDebt;

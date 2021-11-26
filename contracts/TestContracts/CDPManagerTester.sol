@@ -4,10 +4,12 @@ pragma solidity 0.6.11;
 
 import "../TroveManager.sol";
 
-/* Tester contract inherits from TroveManager, and provides external functions 
+/* Tester contract inherits from TroveManager, and provides external functions
 for testing the parent's internal functions. */
 
 contract TroveManagerTester is TroveManager {
+
+    constructor(uint _gasCompensation) public TroveManager(_gasCompensation) {}
 
     function computeICR(uint _coll, uint _debt, uint _price) external pure returns (uint) {
         return LiquityMath._computeCR(_coll, _debt, _price);
@@ -17,18 +19,18 @@ contract TroveManagerTester is TroveManager {
         return _getCollGasCompensation(_coll);
     }
 
-    function getLUSDGasCompensation() external pure returns (uint) {
+    function getLUSDGasCompensation() external view returns (uint) {
         return LUSD_GAS_COMPENSATION;
     }
 
-    function getCompositeDebt(uint _debt) external pure returns (uint) {
+    function getCompositeDebt(uint _debt) external view returns (uint) {
         return _getCompositeDebt(_debt);
     }
 
     function unprotectedDecayBaseRateFromBorrowing() external returns (uint) {
         baseRate = _calcDecayedBaseRate();
         assert(baseRate >= 0 && baseRate <= DECIMAL_PRECISION);
-        
+
         _updateLastFeeOpTime();
         return baseRate;
     }
@@ -47,9 +49,9 @@ contract TroveManagerTester is TroveManager {
 
     function callGetRedemptionFee(uint _ETHDrawn) external view returns (uint) {
         _getRedemptionFee(_ETHDrawn);
-    }  
+    }
 
-    function getActualDebtFromComposite(uint _debtVal) external pure returns (uint) {
+    function getActualDebtFromComposite(uint _debtVal) external view returns (uint) {
         return _getNetDebt(_debtVal);
     }
 
