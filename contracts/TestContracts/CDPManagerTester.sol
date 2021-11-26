@@ -19,10 +19,6 @@ contract TroveManagerTester is TroveManager {
         return _getCollGasCompensation(_coll);
     }
 
-    function getLUSDGasCompensation() external view returns (uint) {
-        return LUSD_GAS_COMPENSATION;
-    }
-
     function getCompositeDebt(uint _debt) external view returns (uint) {
         return _getCompositeDebt(_debt);
     }
@@ -55,8 +51,4 @@ contract TroveManagerTester is TroveManager {
         return _getNetDebt(_debtVal);
     }
 
-    function callInternalRemoveTroveOwner(address _troveOwner) external {
-        uint troveOwnersArrayLength = TroveOwners.length;
-        _removeTroveOwner(_troveOwner, troveOwnersArrayLength);
-    }
 }
