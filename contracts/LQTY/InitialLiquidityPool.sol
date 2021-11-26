@@ -2,6 +2,7 @@ pragma solidity 0.6.11;
 
 import "../Dependencies/IERC20.sol";
 import "../Dependencies/SafeMath.sol";
+import "../Interfaces/ILQTYTreasury.sol";
 
 interface IUniswapV2Factory {
     function getPair(IERC20 tokenA, IERC20 tokenB) external view returns (address);
@@ -123,8 +124,8 @@ contract InitialLiquidityPool {
         rewardToken.transfer(lpToken, rewardTokenLpAmount);
         IUniswapV2Pair(lpToken).mint(treasury);
 
-        streamStartTime = block.timestamp;
-        streamEndTime = block.timestamp.add(streamDuration);
+        streamStartTime = ILQTYTreasury(treasury).issuanceStartTime();
+        streamEndTime = streamStartTime.add(streamDuration);
 
         currentDepositTotal = totalReceived;
         currentRewardTotal = rewardTokenSaleAmount;
@@ -143,7 +144,7 @@ contract InitialLiquidityPool {
     // once the streaming period begins, this returns the currently claimable
     // balance of `rewardToken` for a contributor
     function claimable(address _user) public view returns (uint256) {
-        if (streamStartTime == 0) {
+        if (streamStartTime == 0 || block.timestamp < streamStartTime) {
             return 0;
         }
         uint256 totalClaimable = currentRewardTotal.mul(userAmounts[_user].amount).div(
