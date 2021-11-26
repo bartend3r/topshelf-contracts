@@ -8,6 +8,8 @@ import "../BorrowerOperations.sol";
 for testing the parent's internal functions. */
 contract BorrowerOperationsTester is BorrowerOperations {
 
+    constructor(uint _minNetDebt) public BorrowerOperations(_minNetDebt) {}
+
     function getNewICRFromTroveChange
     (
         uint _coll,

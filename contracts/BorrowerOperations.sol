@@ -36,6 +36,8 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
     // A doubly linked list of Troves, sorted by their collateral ratios
     ISortedTroves public sortedTroves;
 
+    uint256 public override minNetDebt;
+
     /* --- Variable container structs  ---
 
     Used to hold, return and assign variables inside a function, in order to avoid the error:
@@ -96,6 +98,16 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
     event TroveUpdated(address indexed _borrower, uint _debt, uint _coll, uint stake, BorrowerOperation operation);
     event LUSDBorrowingFeePaid(address indexed _borrower, uint _LUSDFee);
 
+
+    constructor(uint _minNetDebt) public Ownable() {
+        setMinNetDebt(_minNetDebt);
+    }
+
+    function setMinNetDebt(uint _minNetDebt) public onlyOwner {
+        require(_minNetDebt > 0);
+        minNetDebt = _minNetDebt;
+    }
+
     // --- Dependency setters ---
 
     function setAddresses(
@@ -115,8 +127,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         override
         onlyOwner
     {
-        // This makes impossible to open a trove with zero withdrawn LUSD
-        assert(MIN_NET_DEBT > 0);
+        require(troveManager == ITroveManager(0), "Already set");
 
         checkContract(_troveManagerAddress);
         checkContract(_activePoolAddress);
@@ -154,8 +165,6 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         emit LUSDTokenAddressChanged(_lusdTokenAddress);
         emit LQTYStakingAddressChanged(_lqtyStakingAddress);
         emit CollateralAddressChanged(_collateralTokenAddress);
-
-        _renounceOwnership();
     }
 
     // --- Borrower Trove Operations ---
@@ -543,8 +552,8 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         require(_newTCR >= CCR, "BorrowerOps: An operation that would result in TCR < CCR is not permitted");
     }
 
-    function _requireAtLeastMinNetDebt(uint _netDebt) internal pure {
-        require (_netDebt >= MIN_NET_DEBT, "BorrowerOps: Trove's net debt must be greater than minimum");
+    function _requireAtLeastMinNetDebt(uint _netDebt) internal view {
+        require (_netDebt >= minNetDebt, "BorrowerOps: Trove's net debt must be greater than minimum");
     }
 
     function _requireValidLUSDRepayment(uint _currentDebt, uint _debtRepayment) internal pure {
