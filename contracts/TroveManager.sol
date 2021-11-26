@@ -233,6 +233,8 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
     }
 
 
+    constructor(uint _gasCompensation) public Ownable() LiquityBase(_gasCompensation) {}
+
     // --- Dependency setter ---
 
     function setAddresses(
@@ -478,7 +480,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         uint _price
     )
         internal
-        pure
+        view
         returns (LiquidationValues memory singleLiquidation)
     {
         singleLiquidation.entireTroveDebt = _entireTroveDebt;
@@ -851,7 +853,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
             *
             * If the resultant net debt of the partial is less than the minimum, net debt we bail.
             */
-            if (newNICR != _partialRedemptionHintNICR || _getNetDebt(newDebt) < MIN_NET_DEBT) {
+            if (newNICR != _partialRedemptionHintNICR || _getNetDebt(newDebt) < IBorrowerOperations(borrowerOperationsAddress).minNetDebt()) {
                 singleRedemption.cancelledPartial = true;
                 return singleRedemption;
             }

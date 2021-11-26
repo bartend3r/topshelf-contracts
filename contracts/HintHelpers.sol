@@ -2,6 +2,7 @@
 
 pragma solidity 0.6.11;
 
+import "./Interfaces/IBorrowerOperations.sol";
 import "./Interfaces/ITroveManager.sol";
 import "./Interfaces/ISortedTroves.sol";
 import "./Dependencies/LiquityBase.sol";
@@ -13,6 +14,7 @@ contract HintHelpers is LiquityBase, Ownable, CheckContract {
 
     ISortedTroves public sortedTroves;
     ITroveManager public troveManager;
+    IBorrowerOperations public borrowerOperations;
 
     // --- Events ---
 
@@ -21,9 +23,12 @@ contract HintHelpers is LiquityBase, Ownable, CheckContract {
 
     // --- Dependency setters ---
 
+    constructor(uint _gasCompensation) public Ownable() LiquityBase(_gasCompensation) {}
+
     function setAddresses(
         address _sortedTrovesAddress,
-        address _troveManagerAddress
+        address _troveManagerAddress,
+        address _borrowerOperationsAddress
     )
         external
         onlyOwner
@@ -33,6 +38,7 @@ contract HintHelpers is LiquityBase, Ownable, CheckContract {
 
         sortedTroves = ISortedTroves(_sortedTrovesAddress);
         troveManager = ITroveManager(_troveManagerAddress);
+        borrowerOperations = IBorrowerOperations(_borrowerOperationsAddress);
 
         emit SortedTrovesAddressChanged(_sortedTrovesAddress);
         emit TroveManagerAddressChanged(_troveManagerAddress);
@@ -60,7 +66,7 @@ contract HintHelpers is LiquityBase, Ownable, CheckContract {
      */
 
     function getRedemptionHints(
-        uint _LUSDamount, 
+        uint _LUSDamount,
         uint _price,
         uint _maxIterations
     )
@@ -87,13 +93,14 @@ contract HintHelpers is LiquityBase, Ownable, CheckContract {
             _maxIterations = uint(-1);
         }
 
+        uint minNetDebt = borrowerOperations.minNetDebt();
         while (currentTroveuser != address(0) && remainingLUSD > 0 && _maxIterations-- > 0) {
             uint netLUSDDebt = _getNetDebt(troveManager.getTroveDebt(currentTroveuser))
                 .add(troveManager.getPendingLUSDDebtReward(currentTroveuser));
 
             if (netLUSDDebt > remainingLUSD) {
-                if (netLUSDDebt > MIN_NET_DEBT) {
-                    uint maxRedeemableLUSD = LiquityMath._min(remainingLUSD, netLUSDDebt.sub(MIN_NET_DEBT));
+                if (netLUSDDebt > minNetDebt) {
+                    uint maxRedeemableLUSD = LiquityMath._min(remainingLUSD, netLUSDDebt.sub(minNetDebt));
 
                     uint ETH = troveManager.getTroveColl(currentTroveuser)
                         .add(troveManager.getPendingETHReward(currentTroveuser));
@@ -117,13 +124,13 @@ contract HintHelpers is LiquityBase, Ownable, CheckContract {
         truncatedLUSDamount = _LUSDamount.sub(remainingLUSD);
     }
 
-    /* getApproxHint() - return address of a Trove that is, on average, (length / numTrials) positions away in the 
-    sortedTroves list from the correct insert position of the Trove to be inserted. 
-    
-    Note: The output address is worst-case O(n) positions away from the correct insert position, however, the function 
+    /* getApproxHint() - return address of a Trove that is, on average, (length / numTrials) positions away in the
+    sortedTroves list from the correct insert position of the Trove to be inserted.
+
+    Note: The output address is worst-case O(n) positions away from the correct insert position, however, the function
     is probabilistic. Input can be tuned to guarantee results to a high degree of confidence, e.g:
 
-    Submitting numTrials = k * sqrt(length), with k = 15 makes it very, very likely that the ouput address will 
+    Submitting numTrials = k * sqrt(length), with k = 15 makes it very, very likely that the ouput address will
     be <= sqrt(length) positions away from the correct insert position.
     */
     function getApproxHint(uint _CR, uint _numTrials, uint _inputRandomSeed)

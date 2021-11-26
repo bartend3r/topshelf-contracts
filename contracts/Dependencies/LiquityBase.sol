@@ -9,9 +9,9 @@ import "../Interfaces/IDefaultPool.sol";
 import "../Interfaces/IPriceFeed.sol";
 import "../Interfaces/ILiquityBase.sol";
 
-/* 
+/*
 * Base contract for TroveManager, BorrowerOperations and StabilityPool. Contains global system constants and
-* common functions. 
+* common functions.
 */
 contract LiquityBase is BaseMath, ILiquityBase {
     using SafeMath for uint;
@@ -25,11 +25,7 @@ contract LiquityBase is BaseMath, ILiquityBase {
     uint constant public CCR = 1500000000000000000; // 150%
 
     // Amount of LUSD to be locked in gas pool on opening troves
-    uint constant public LUSD_GAS_COMPENSATION = 200e18;
-
-    // Minimum amount of net LUSD debt a trove must have
-    uint constant public MIN_NET_DEBT = 1800e18;
-    // uint constant public MIN_NET_DEBT = 0; 
+    uint immutable public LUSD_GAS_COMPENSATION;
 
     uint constant public PERCENT_DIVISOR = 200; // dividing by 200 yields 0.5%
 
@@ -41,14 +37,18 @@ contract LiquityBase is BaseMath, ILiquityBase {
 
     IPriceFeed public override priceFeed;
 
+    constructor(uint _gasCompensation) public {
+        LUSD_GAS_COMPENSATION = _gasCompensation;
+    }
+
     // --- Gas compensation functions ---
 
     // Returns the composite debt (drawn debt + gas compensation) of a trove, for the purpose of ICR calculation
-    function _getCompositeDebt(uint _debt) internal pure returns (uint) {
+    function _getCompositeDebt(uint _debt) internal view returns (uint) {
         return _debt.add(LUSD_GAS_COMPENSATION);
     }
 
-    function _getNetDebt(uint _debt) internal pure returns (uint) {
+    function _getNetDebt(uint _debt) internal view returns (uint) {
         return _debt.sub(LUSD_GAS_COMPENSATION);
     }
 
