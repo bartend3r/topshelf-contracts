@@ -166,7 +166,10 @@ contract('All Liquity functions with onlyOwner modifier', async accounts => {
 
   describe('CommunityIssuance', async accounts => {
     it("setAddresses(): reverts when called by non-owner, with wrong addresses, or twice", async () => {
-      const params = [lqtyToken.address, stabilityPool.address, lqtyTreasury.address]
+      // a bit lazy here adding the lqtyTreasury.address as the last param which is
+      // the shutdown address, but the test should fail due to the call from alice
+      // and the onlyOwner modifier.
+      const params = [lqtyToken.address, stabilityPool.address, lqtyTreasury.address, lqtyTreasury.address]
       await th.assertRevert(communityIssuance.setAddresses(...params, { from: alice }))
 
       // Attempt to use zero address

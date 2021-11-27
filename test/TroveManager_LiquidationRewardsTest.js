@@ -39,7 +39,7 @@ contract('TroveManager - Redistribution reward calculations', async accounts => 
 
   beforeEach(async () => {
     contracts = await deploymentHelper.deployLiquityCore()
-    contracts.troveManager = await TroveManagerTester.new()
+    contracts.troveManager = await TroveManagerTester.new("200000000000000000000")
     contracts.lusdToken = await LUSDToken.new(
       "LUSD Stablecoin",
       "LUSD",

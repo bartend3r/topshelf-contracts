@@ -40,7 +40,7 @@ contract('Access Control: Liquity functions with the caller restricted to Liquit
 
   before(async () => {
     coreContracts = await deploymentHelper.deployLiquityCore()
-    coreContracts.troveManager = await TroveManagerTester.new()
+    coreContracts.troveManager = await TroveManagerTester.new("200000000000000000000")
     coreContracts = await deploymentHelper.deployLUSDTokenTester(coreContracts)
     const LQTYContracts = await deploymentHelper.deployLQTYTesterContractsHardhat(bountyAddress, lpRewardsAddress, multisig)
 

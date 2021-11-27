@@ -42,8 +42,8 @@ contract('Gas compensation tests', async accounts => {
   }
 
   before(async () => {
-    troveManagerTester = await TroveManagerTester.new()
-    borrowerOperationsTester = await BorrowerOperationsTester.new()
+    troveManagerTester = await TroveManagerTester.new("200000000000000000000")
+    borrowerOperationsTester = await BorrowerOperationsTester.new("2000000000000000000000", "200000000000000000000")
 
     TroveManagerTester.setAsDeployed(troveManagerTester)
     BorrowerOperationsTester.setAsDeployed(borrowerOperationsTester)
@@ -51,7 +51,7 @@ contract('Gas compensation tests', async accounts => {
 
   beforeEach(async () => {
     contracts = await deploymentHelper.deployLiquityCore()
-    contracts.troveManager = await TroveManagerTester.new()
+    contracts.troveManager = await TroveManagerTester.new("200000000000000000000")
     contracts.lusdToken = await LUSDToken.new(
       "LUSD Stablecoin",
       "LUSD",

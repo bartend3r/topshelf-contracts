@@ -51,7 +51,7 @@ contract('LQTYStaking revenue share tests', async accounts => {
 
   beforeEach(async () => {
     contracts = await deploymentHelper.deployLiquityCore()
-    contracts.troveManager = await TroveManagerTester.new()
+    contracts.troveManager = await TroveManagerTester.new("200000000000000000000")
     contracts = await deploymentHelper.deployLUSDTokenTester(contracts)
     const LQTYContracts = await deploymentHelper.deployLQTYTesterContractsHardhat(bountyAddress, lpRewardsAddress, multisig)
 
@@ -345,8 +345,8 @@ contract('LQTYStaking revenue share tests', async accounts => {
 
   // Adapted from the original for the MultiRewards staking contract
   it("LQTY Staking: A single staker earns all ETH and LQTY fees that occur", async () => {
-    // FF time one year so owner can transfer LQTY
-    await th.fastForwardTime(timeValues.SECONDS_IN_ONE_YEAR, web3.currentProvider)
+    // FF time past the redepmtion phase which is 2 weeks
+    await th.fastForwardTime((timeValues.MINUTES_IN_ONE_WEEK*2*60), web3.currentProvider)
     // multisig transfers LQTY to staker A
     await lqtyToken.transfer(A, dec(100, 18), {from: multisig})
 
@@ -357,7 +357,7 @@ contract('LQTYStaking revenue share tests', async accounts => {
     await lqtyToken.approve(lqtyStaking.address, dec(100, 18), {from: A})
     await lqtyStaking.stake(dec(100, 18), {from: A})
 
-    // check contract fee balances ,assert 0
+    // check contract fee balances, assert 0
     const LUSD_Start = await lusdToken.balanceOf(lqtyStaking.address);
     assert.equal(LUSD_Start.toString(), '0')
     const Collat_Start = await collateral.balanceOf(lqtyStaking.address);
@@ -440,7 +440,7 @@ contract('LQTYStaking revenue share tests', async accounts => {
     const A_LUSDGain = A_LUSDBalance_After.sub(A_LUSDBalance_Before)
 
     assert.isAtMost(th.getDifference(expectedTotalETHGain, A_ETHGain), 620000)
-    assert.isAtMost(th.getDifference(expectedTotalLUSDGain, A_LUSDGain), 2000000)
+    assert.isAtMost(th.getDifference(expectedTotalLUSDGain, A_LUSDGain), 2700000)
   })
 
   it("unstake(): reverts if user has no stake",  async () => {
