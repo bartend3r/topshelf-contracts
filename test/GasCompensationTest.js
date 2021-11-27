@@ -43,7 +43,7 @@ contract('Gas compensation tests', async accounts => {
 
   before(async () => {
     troveManagerTester = await TroveManagerTester.new("200000000000000000000")
-    borrowerOperationsTester = await BorrowerOperationsTester.new("2000000000000000000000", "200000000000000000000")
+    borrowerOperationsTester = await BorrowerOperationsTester.new("1800000000000000000000", "200000000000000000000")
 
     TroveManagerTester.setAsDeployed(troveManagerTester)
     BorrowerOperationsTester.setAsDeployed(borrowerOperationsTester)

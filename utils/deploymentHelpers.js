@@ -143,7 +143,7 @@ class DeploymentHelper {
     testerContracts.gasPool = await GasPool.new()
     testerContracts.collSurplusPool = await CollSurplusPool.new()
     testerContracts.math = await LiquityMathTester.new()
-    testerContracts.borrowerOperations = await BorrowerOperationsTester.new("2000000000000000000000", "200000000000000000000")
+    testerContracts.borrowerOperations = await BorrowerOperationsTester.new("1800000000000000000000", "200000000000000000000")
     testerContracts.troveManager = await TroveManagerTester.new("200000000000000000000")
     testerContracts.functionCaller = await FunctionCaller.new()
     testerContracts.hintHelpers = await HintHelpers.new("200000000000000000000")

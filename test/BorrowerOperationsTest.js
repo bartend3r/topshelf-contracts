@@ -71,7 +71,7 @@ contract('BorrowerOperations', async accounts => {
   const testCorpus = ({ withProxy = false }) => {
     beforeEach(async () => {
       contracts = await deploymentHelper.deployLiquityCore()
-      contracts.borrowerOperations = await BorrowerOperationsTester.new("2000000000000000000000", "200000000000000000000")
+      contracts.borrowerOperations = await BorrowerOperationsTester.new("1800000000000000000000", "200000000000000000000")
       contracts.troveManager = await TroveManagerTester.new("200000000000000000000")
       contracts = await deploymentHelper.deployLUSDTokenTester(contracts)
       const LQTYContracts = await deploymentHelper.deployLQTYTesterContractsHardhat(bountyAddress, lpRewardsAddress, multisig)
