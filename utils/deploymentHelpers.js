@@ -70,15 +70,15 @@ class DeploymentHelper {
   static async deployLiquityCoreHardhat() {
     const priceFeedTestnet = await PriceFeedTestnet.new()
     const sortedTroves = await SortedTroves.new()
-    const troveManager = await TroveManager.new()
+    const troveManager = await TroveManager.new("200000000000000000000")
     const activePool = await ActivePool.new()
-    const stabilityPool = await StabilityPool.new()
+    const stabilityPool = await StabilityPool.new("200000000000000000000")
     const gasPool = await GasPool.new()
     const defaultPool = await DefaultPool.new()
     const collSurplusPool = await CollSurplusPool.new()
     const functionCaller = await FunctionCaller.new()
-    const borrowerOperations = await BorrowerOperations.new()
-    const hintHelpers = await HintHelpers.new()
+    const borrowerOperations = await BorrowerOperations.new("2000000000000000000000", "200000000000000000000")
+    const hintHelpers = await HintHelpers.new("200000000000000000000")
     const flashLender = await FlashLender.new()
     const systemShutdown = await SystemShutdown.new()
     const lusdToken = await LUSDToken.new(
@@ -139,14 +139,14 @@ class DeploymentHelper {
     testerContracts.communityIssuance = await CommunityIssuanceTester.new("32000000000000000000000000", "999998681227695000")
     testerContracts.activePool = await ActivePoolTester.new()
     testerContracts.defaultPool = await DefaultPoolTester.new()
-    testerContracts.stabilityPool = await StabilityPoolTester.new()
+    testerContracts.stabilityPool = await StabilityPoolTester.new("200000000000000000000")
     testerContracts.gasPool = await GasPool.new()
     testerContracts.collSurplusPool = await CollSurplusPool.new()
     testerContracts.math = await LiquityMathTester.new()
-    testerContracts.borrowerOperations = await BorrowerOperationsTester.new()
-    testerContracts.troveManager = await TroveManagerTester.new()
+    testerContracts.borrowerOperations = await BorrowerOperationsTester.new("2000000000000000000000", "200000000000000000000")
+    testerContracts.troveManager = await TroveManagerTester.new("200000000000000000000")
     testerContracts.functionCaller = await FunctionCaller.new()
-    testerContracts.hintHelpers = await HintHelpers.new()
+    testerContracts.hintHelpers = await HintHelpers.new("200000000000000000000")
     testerContracts.flashLender = await FlashLender.new()
     testerContracts.lusdToken =  await LUSDTokenTester.new(
       "LUSD Stablecoin",
@@ -370,7 +370,8 @@ class DeploymentHelper {
     // set contracts in HintHelpers
     await contracts.hintHelpers.setAddresses(
       contracts.sortedTroves.address,
-      contracts.troveManager.address
+      contracts.troveManager.address,
+      contracts.borrowerOperations.address
     )
 
     await contracts.flashLender.setAddresses(
