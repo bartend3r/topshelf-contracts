@@ -43,7 +43,7 @@ contract InitialLiquidityPool {
     uint256 public depositEndTime;
     // length of the "grace period" - time that deposits continue
     // after the contributed amount exceeds the soft cap
-    uint256 public constant gracePeriod = 3600;
+    uint256 public constant gracePeriod = 3600 * 6;
 
     // epoch time when `rewardToken` begins streaming to buyers
     uint256 public streamStartTime;
@@ -82,7 +82,7 @@ contract InitialLiquidityPool {
         depositEndTime = _startTime.add(86400);
 
         softCap = _softCap;
-        hardCap = _softCap.mul(10);
+        hardCap = _softCap.mul(5);
     }
 
     // `rewardToken` should be transferred into the contract prior to calling this method
