@@ -19,7 +19,7 @@ contract('StabilityPool', async accounts => {
   const [owner, alice] = accounts;
 
   beforeEach(async () => {
-    stabilityPool = await StabilityPool.new()
+    stabilityPool = await StabilityPool.new("200000000000000000000")
     const mockActivePoolAddress = (await NonPayable.new()).address
     const dumbContractAddress = (await NonPayable.new()).address
     await stabilityPool.setAddresses(dumbContractAddress, dumbContractAddress, mockActivePoolAddress, dumbContractAddress, dumbContractAddress, dumbContractAddress, dumbContractAddress)

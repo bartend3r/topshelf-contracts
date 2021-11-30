@@ -33,7 +33,7 @@ const TimeValues = {
   SECONDS_IN_SIX_WEEKS:   60 * 60 * 24 * 7 * 6,
   SECONDS_IN_ONE_MONTH:   60 * 60 * 24 * 30,
   SECONDS_IN_ONE_YEAR:    60 * 60 * 24 * 365,
-  MINUTES_IN_ONE_WEEK:    60 * 24 * 30,
+  MINUTES_IN_ONE_WEEK:    60 * 24 * 7,
   MINUTES_IN_ONE_MONTH:   60 * 24 * 30,
   MINUTES_IN_ONE_YEAR:    60 * 24 * 365
 }
@@ -677,7 +677,7 @@ class TestHelper {
     if (!upperHint) upperHint = this.ZERO_ADDRESS
     if (!lowerHint) lowerHint = this.ZERO_ADDRESS
     const MIN_DEBT = (
-      await this.getNetBorrowingAmount(contracts, await contracts.borrowerOperations.MIN_NET_DEBT())
+      await this.getNetBorrowingAmount(contracts, await contracts.borrowerOperations.minNetDebt())
     ).add(this.toBN(1)) // add 1 to avoid rounding issues
     const lusdAmount = MIN_DEBT.add(extraLUSDAmount)
 

@@ -331,7 +331,7 @@ contract('Fee arithmetic tests', async accounts => {
   ]
 
   before(async () => {
-    troveManagerTester = await TroveManagerTester.new()
+    troveManagerTester = await TroveManagerTester.new("200000000000000000000")
     TroveManagerTester.setAsDeployed(troveManagerTester)
 
     mathTester = await LiquityMathTester.new()

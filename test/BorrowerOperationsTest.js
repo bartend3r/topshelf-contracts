@@ -71,8 +71,8 @@ contract('BorrowerOperations', async accounts => {
   const testCorpus = ({ withProxy = false }) => {
     beforeEach(async () => {
       contracts = await deploymentHelper.deployLiquityCore()
-      contracts.borrowerOperations = await BorrowerOperationsTester.new()
-      contracts.troveManager = await TroveManagerTester.new()
+      contracts.borrowerOperations = await BorrowerOperationsTester.new("1800000000000000000000", "200000000000000000000")
+      contracts.troveManager = await TroveManagerTester.new("200000000000000000000")
       contracts = await deploymentHelper.deployLUSDTokenTester(contracts)
       const LQTYContracts = await deploymentHelper.deployLQTYTesterContractsHardhat(bountyAddress, lpRewardsAddress, multisig)
 
@@ -99,7 +99,7 @@ contract('BorrowerOperations', async accounts => {
       communityIssuance = LQTYContracts.communityIssuance
 
       LUSD_GAS_COMPENSATION = await borrowerOperations.LUSD_GAS_COMPENSATION()
-      MIN_NET_DEBT = await borrowerOperations.MIN_NET_DEBT()
+      MIN_NET_DEBT = await borrowerOperations.minNetDebt()
       BORROWING_FEE_FLOOR = await borrowerOperations.BORROWING_FEE_FLOOR()
 
       for (account of accounts.slice(0, 14)) {
