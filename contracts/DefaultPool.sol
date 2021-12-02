@@ -34,7 +34,8 @@ contract DefaultPool is Ownable, CheckContract, IDefaultPool {
 
     function setAddresses(
         address _troveManagerAddress,
-        address _activePoolAddress
+        address _activePoolAddress,
+        address _collateralTokenAddress
     )
         external
         onlyOwner
@@ -44,7 +45,7 @@ contract DefaultPool is Ownable, CheckContract, IDefaultPool {
 
         troveManagerAddress = _troveManagerAddress;
         activePoolAddress = _activePoolAddress;
-        collateralToken = IDefaultPool(_activePoolAddress).collateralToken();
+        collateralToken = IERC20(_collateralTokenAddress);
 
         emit TroveManagerAddressChanged(_troveManagerAddress);
         emit ActivePoolAddressChanged(_activePoolAddress);
