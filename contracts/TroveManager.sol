@@ -248,7 +248,8 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         address _lusdTokenAddress,
         address _sortedTrovesAddress,
         address _lqtyTokenAddress,
-        address _lqtyStakingAddress
+        address _lqtyStakingAddress,
+        address _collateralToken
     )
         external
         override
@@ -265,6 +266,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         checkContract(_sortedTrovesAddress);
         checkContract(_lqtyTokenAddress);
         checkContract(_lqtyStakingAddress);
+        checkContract(_collateralToken);
 
         borrowerOperationsAddress = _borrowerOperationsAddress;
         activePool = IActivePool(_activePoolAddress);
@@ -277,7 +279,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         sortedTroves = ISortedTroves(_sortedTrovesAddress);
         lqtyToken = IERC20(_lqtyTokenAddress);
         lqtyStaking = IMultiRewards(_lqtyStakingAddress);
-        collateralToken = address(IBorrowerOperations(_borrowerOperationsAddress).collateralToken());
+        collateralToken = _collateralToken;
 
         systemDeploymentTime = block.timestamp;
 

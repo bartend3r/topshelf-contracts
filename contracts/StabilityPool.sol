@@ -279,7 +279,8 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         address _lusdTokenAddress,
         address _sortedTrovesAddress,
         address _priceFeedAddress,
-        address _communityIssuanceAddress
+        address _communityIssuanceAddress,
+        address _collateralTokenAddress
     )
         external
         override
@@ -292,6 +293,7 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         checkContract(_sortedTrovesAddress);
         checkContract(_priceFeedAddress);
         checkContract(_communityIssuanceAddress);
+        checkContract(_collateralTokenAddress);
 
         borrowerOperations = IBorrowerOperations(_borrowerOperationsAddress);
         troveManager = ITroveManager(_troveManagerAddress);
@@ -300,7 +302,7 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         sortedTroves = ISortedTroves(_sortedTrovesAddress);
         priceFeed = IPriceFeed(_priceFeedAddress);
         communityIssuance = ICommunityIssuance(_communityIssuanceAddress);
-        collateralToken = IBorrowerOperations(_borrowerOperationsAddress).collateralToken();
+        collateralToken = IERC20(_collateralTokenAddress);
 
         emit BorrowerOperationsAddressChanged(_borrowerOperationsAddress);
         emit TroveManagerAddressChanged(_troveManagerAddress);
@@ -634,14 +636,8 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
 
         // Burn the debt that was successfully offset
         lusdToken.burn(address(this), _debtToOffset);
-        // added below to track and emit new collateral as it would for payable ETH
-        // this.notifyReceiveCollateral(_collToAdd); wants the caller to be the
-        // activepool, which is fine if activepool was transferring ETH to the
-        // notifyReceiveCollateral fallback, but we can't "check" that for an
-        // ERC transfer, so I put the next two lines here.
-        ETH = ETH.add(_collToAdd);
-        StabilityPoolETHBalanceUpdated(ETH);
-        activePoolCached.sendCollateral(address(this), _collToAdd, false);
+
+        activePoolCached.sendCollateral(address(this), _collToAdd, true);
     }
 
     function _decreaseLUSD(uint _amount) internal {
