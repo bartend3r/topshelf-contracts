@@ -339,6 +339,7 @@ class DeploymentHelper {
       contracts.sortedTroves.address,
       LQTYContracts.lqtyToken.address,
       LQTYContracts.lqtyStaking.address,
+      contracts.collateral.address
     )
 
     // set contracts in the Pools
@@ -349,7 +350,8 @@ class DeploymentHelper {
       contracts.lusdToken.address,
       contracts.sortedTroves.address,
       contracts.priceFeedTestnet.address,
-      LQTYContracts.communityIssuance.address
+      LQTYContracts.communityIssuance.address,
+      contracts.collateral.address
     )
 
     await contracts.activePool.setAddresses(
@@ -357,18 +359,21 @@ class DeploymentHelper {
       contracts.troveManager.address,
       contracts.stabilityPool.address,
       contracts.defaultPool.address,
-      contracts.flashLender.address
+      contracts.flashLender.address,
+      contracts.collateral.address
     )
 
     await contracts.defaultPool.setAddresses(
       contracts.troveManager.address,
       contracts.activePool.address,
+      contracts.collateral.address
     )
 
     await contracts.collSurplusPool.setAddresses(
       contracts.borrowerOperations.address,
       contracts.troveManager.address,
       contracts.activePool.address,
+      contracts.collateral.address
     )
 
     // set contracts in HintHelpers
