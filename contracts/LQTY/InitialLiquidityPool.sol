@@ -116,7 +116,7 @@ contract InitialLiquidityPool {
 
     // after the deposit period is finished and the soft cap has been reached,
     // call this method to add liquidity and begin reward streaming for contributors
-    function addLiquidity() public {
+    function addLiquidity() public virtual {
         require(block.timestamp >= depositEndTime, "Deposits are still open");
         require(totalReceived >= softCap, "Soft cap not reached");
         uint256 amount = contributionToken.balanceOf(address(this));

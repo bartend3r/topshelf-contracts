@@ -13,7 +13,7 @@ contract LQTYTreasury is Ownable {
 
     string constant public NAME = "LQTYTreasury";
 
-    uint public immutable issuanceStartTime;
+    uint public issuanceStartTime;
     uint public totalSupplyCap;
     IERC20 public token;
     address[] public issuers;
