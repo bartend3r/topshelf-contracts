@@ -1831,7 +1831,7 @@ contract('StabilityPool', async accounts => {
       await priceFeed.setPrice(dec(200, 18))
 
       // Bob issues a further 5000 LUSD from his trove
-      await borrowerOperations.withdrawLUSD(th._100pct, dec(5000, 18), bob, bob, { from: bob })
+      await borrowerOperations.withdrawLUSD(bob, th._100pct, dec(5000, 18), bob, bob, { from: bob })
 
       // Expect Alice's LUSD balance increase be very close to 8333.3333333333333333 LUSD
       await stabilityPool.withdrawFromSP(dec(10000, 18), { from: alice })

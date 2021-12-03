@@ -52,7 +52,7 @@ contract('HintHelpers', async accounts => {
  }
 
  const withdrawLUSDfromTrove = async (account) => {
-  await borrowerOperations.withdrawLUSD(th._100pct, '100000000000000000000', account, account, { from: account })
+  await borrowerOperations.withdrawLUSD(account, th._100pct, '100000000000000000000', account, account, { from: account })
  }
 
  // Sequentially add coll and withdraw LUSD, 1 account at a time

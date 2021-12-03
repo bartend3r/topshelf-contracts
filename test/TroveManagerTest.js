@@ -1095,8 +1095,8 @@ contract('TroveManager', async accounts => {
 
     // // All remaining troves D and E repay a little debt, applying their pending rewards
     assert.isTrue((await sortedTroves.getSize()).eq(toBN('3')))
-    await borrowerOperations.repayLUSD(dec(1, 18), D, D, {from: D})
-    await borrowerOperations.repayLUSD(dec(1, 18), E, E, {from: E})
+    await borrowerOperations.repayLUSD(D, dec(1, 18), D, D, {from: D})
+    await borrowerOperations.repayLUSD(E, dec(1, 18), E, E, {from: E})
 
     // Check C is the only trove that has pending rewards
     assert.isTrue(await troveManager.hasPendingRewards(C))
@@ -1834,8 +1834,8 @@ contract('TroveManager', async accounts => {
 
     // // All remaining troves D and E repay a little debt, applying their pending rewards
     assert.isTrue((await sortedTroves.getSize()).eq(toBN('3')))
-    await borrowerOperations.repayLUSD(dec(1, 18), D, D, {from: D})
-    await borrowerOperations.repayLUSD(dec(1, 18), E, E, {from: E})
+    await borrowerOperations.repayLUSD(D, dec(1, 18), D, D, {from: D})
+    await borrowerOperations.repayLUSD(E, dec(1, 18), E, E, {from: E})
 
     // Check C is the only trove that has pending rewards
     assert.isTrue(await troveManager.hasPendingRewards(C))

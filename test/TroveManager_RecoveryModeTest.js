@@ -129,7 +129,7 @@ contract('TroveManager - in Recovery Mode', async accounts => {
     const recoveryMode_Before = await th.checkRecoveryMode(contracts);
     assert.isTrue(recoveryMode_Before)
 
-    await borrowerOperations.addColl(1, alice, alice, { from: alice })
+    await borrowerOperations.addColl(alice, 1, alice, alice, { from: alice })
 
     const recoveryMode_After = await th.checkRecoveryMode(contracts);
     assert.isTrue(recoveryMode_After)
@@ -144,7 +144,7 @@ contract('TroveManager - in Recovery Mode', async accounts => {
     const recoveryMode_Before = await th.checkRecoveryMode(contracts);
     assert.isFalse(recoveryMode_Before)
 
-    await borrowerOperations.withdrawColl(_1_Ether, alice, alice, { from: alice })
+    await borrowerOperations.withdrawColl(alice, _1_Ether, alice, alice, { from: alice })
 
     const recoveryMode_After = await th.checkRecoveryMode(contracts);
     assert.isFalse(recoveryMode_After)
@@ -165,7 +165,7 @@ contract('TroveManager - in Recovery Mode', async accounts => {
     const recoveryMode_Before = await th.checkRecoveryMode(contracts);
     assert.isTrue(recoveryMode_Before)
 
-    await borrowerOperations.addColl(A_coll, alice, alice, { from: alice })
+    await borrowerOperations.addColl(alice, A_coll, alice, alice, { from: alice })
 
     const recoveryMode_After = await th.checkRecoveryMode(contracts);
     assert.isFalse(recoveryMode_After)

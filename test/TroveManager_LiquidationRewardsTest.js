@@ -369,7 +369,7 @@ contract('TroveManager - Redistribution reward calculations', async accounts => 
 
     // Bob adds 1 ETH to his trove
     const addedColl1 = toBN(dec(1, 'ether'))
-    await borrowerOperations.addColl(addedColl1, B, B, { from: B })
+    await borrowerOperations.addColl(B, addedColl1, B, B, { from: B })
 
     // Liquidate C
     const txC = await troveManager.liquidate(C)
@@ -392,7 +392,7 @@ contract('TroveManager - Redistribution reward calculations', async accounts => 
 
     // Bob adds 1 ETH to his trove
     const addedColl2 = toBN(dec(1, 'ether'))
-    await borrowerOperations.addColl(addedColl2, B, B, { from: B })
+    await borrowerOperations.addColl(B, addedColl2, B, B, { from: B })
 
     // Liquidate E
     const txE = await troveManager.liquidate(E)
@@ -462,7 +462,7 @@ contract('TroveManager - Redistribution reward calculations', async accounts => 
     assert.isAtMost(getDifference(E_expectedPendingETH_1, E_ETHGain_1), 1e8)
 
     // // Bob adds 1 ETH to his trove
-    await borrowerOperations.addColl(dec(1, 'ether'), B, B, { from: B  })
+    await borrowerOperations.addColl(B, dec(1, 'ether'), B, B, { from: B  })
 
     // Check entireColl for each trove
     const B_entireColl_1 = (await th.getEntireCollAndDebt(contracts, B)).entireColl
@@ -500,7 +500,7 @@ contract('TroveManager - Redistribution reward calculations', async accounts => 
     assert.isAtMost(getDifference(E_expectedPendingETH_2, E_ETHGain_2), 1e8)
 
     // // Bob adds 1 ETH to his trove
-    await borrowerOperations.addColl(dec(1, 'ether'), B, B, { from: B  })
+    await borrowerOperations.addColl(B, dec(1, 'ether'), B, B, { from: B  })
 
     // Check entireColl for each trove
     const B_entireColl_2 = (await th.getEntireCollAndDebt(contracts, B)).entireColl
@@ -551,10 +551,10 @@ contract('TroveManager - Redistribution reward calculations', async accounts => 
 
     //Bob adds ETH to his trove
     const addedColl = toBN(dec(1, 'ether'))
-    await borrowerOperations.addColl(addedColl, bob, bob, { from: bob })
+    await borrowerOperations.addColl(bob, addedColl, bob, bob, { from: bob })
 
     // Alice withdraws LUSD
-    await borrowerOperations.withdrawLUSD(th._100pct, await getNetBorrowingAmount(A_totalDebt), alice, alice, { from: alice })
+    await borrowerOperations.withdrawLUSD(alice, th._100pct, await getNetBorrowingAmount(A_totalDebt), alice, alice, { from: alice })
 
     // Price drops to 100 $/E
     await priceFeed.setPrice(dec(100, 18))
@@ -601,7 +601,7 @@ contract('TroveManager - Redistribution reward calculations', async accounts => 
 
     //Bob adds ETH to his trove
     const addedColl = toBN(dec(1, 'ether'))
-    await borrowerOperations.addColl(addedColl, bob, bob, { from: bob })
+    await borrowerOperations.addColl(bob, addedColl, bob, bob, { from: bob })
 
     // D opens trove
     const { collateral: D_coll, totalDebt: D_totalDebt } = await openTrove({ ICR: toBN(dec(200, 16)), extraLUSDAmount: dec(110, 18), extraParams: { from: dennis } })
@@ -703,7 +703,7 @@ contract('TroveManager - Redistribution reward calculations', async accounts => 
 
     //Carol adds 1 ETH to her trove, brings it to 1992.01 total coll
     const C_addedColl = toBN(dec(1, 'ether'))
-    await borrowerOperations.addColl(dec(1, 'ether'), carol, carol, { from: carol  })
+    await borrowerOperations.addColl(carol, dec(1, 'ether'), carol, carol, { from: carol  })
 
     //Expect 1996 ETH in system now
     const entireSystemColl_2 = (await activePool.getETH()).add(await defaultPool.getETH())
@@ -803,9 +803,9 @@ contract('TroveManager - Redistribution reward calculations', async accounts => 
     bringing them to 2.995, 2.995, 1992.01 total coll each. */
 
     const addedColl = toBN(dec(1, 'ether'))
-    await borrowerOperations.addColl(addedColl, alice, alice, { from: alice })
-    await borrowerOperations.addColl(addedColl, bob, bob, { from: bob })
-    await borrowerOperations.addColl(addedColl, carol, carol, { from: carol })
+    await borrowerOperations.addColl(alice, addedColl, alice, alice, { from: alice })
+    await borrowerOperations.addColl(bob, addedColl, bob, bob, { from: bob })
+    await borrowerOperations.addColl(carol, addedColl, carol, carol, { from: carol })
 
     //Expect 1998 ETH in system now
     const entireSystemColl_2 = (await activePool.getETH()).add(await defaultPool.getETH()).toString()
@@ -889,10 +889,10 @@ contract('TroveManager - Redistribution reward calculations', async accounts => 
 
     //Bob withdraws 0.5 ETH from his trove
     const withdrawnColl = toBN(dec(500, 'finney'))
-    await borrowerOperations.withdrawColl(withdrawnColl, bob, bob, { from: bob })
+    await borrowerOperations.withdrawColl(bob, withdrawnColl, bob, bob, { from: bob })
 
     // Alice withdraws LUSD
-    await borrowerOperations.withdrawLUSD(th._100pct, await getNetBorrowingAmount(A_totalDebt), alice, alice, { from: alice })
+    await borrowerOperations.withdrawLUSD(alice, th._100pct, await getNetBorrowingAmount(A_totalDebt), alice, alice, { from: alice })
 
     // Price drops to 100 $/E
     await priceFeed.setPrice(dec(100, 18))
@@ -943,7 +943,7 @@ contract('TroveManager - Redistribution reward calculations', async accounts => 
 
     //Bob  withdraws 0.5 ETH from his trove
     const withdrawnColl = toBN(dec(500, 'finney'))
-    await borrowerOperations.withdrawColl(withdrawnColl, bob, bob, { from: bob })
+    await borrowerOperations.withdrawColl(bob, withdrawnColl, bob, bob, { from: bob })
 
     // D opens trove
     const { collateral: D_coll, totalDebt: D_totalDebt } = await openTrove({ ICR: toBN(dec(200, 16)), extraLUSDAmount: dec(110, 18), extraParams: { from: dennis } })
@@ -1050,7 +1050,7 @@ contract('TroveManager - Redistribution reward calculations', async accounts => 
 
     //Carol wthdraws 1 ETH from her trove, brings it to 1990.01 total coll
     const C_withdrawnColl = toBN(dec(1, 'ether'))
-    await borrowerOperations.withdrawColl(C_withdrawnColl, carol, carol, { from: carol })
+    await borrowerOperations.withdrawColl(carol, C_withdrawnColl, carol, carol, { from: carol })
 
     //Expect 1994 ETH in system now
     const entireSystemColl_2 = (await activePool.getETH()).add(await defaultPool.getETH())
@@ -1149,9 +1149,9 @@ contract('TroveManager - Redistribution reward calculations', async accounts => 
     /* Alice, Bob, Carol each withdraw 0.5 ETH to their troves,
     bringing them to 1.495, 1.495, 1990.51 total coll each. */
     const withdrawnColl = toBN(dec(500, 'finney'))
-    await borrowerOperations.withdrawColl(withdrawnColl, alice, alice, { from: alice })
-    await borrowerOperations.withdrawColl(withdrawnColl, bob, bob, { from: bob })
-    await borrowerOperations.withdrawColl(withdrawnColl, carol, carol, { from: carol })
+    await borrowerOperations.withdrawColl(alice, withdrawnColl, alice, alice, { from: alice })
+    await borrowerOperations.withdrawColl(bob, withdrawnColl, bob, bob, { from: bob })
+    await borrowerOperations.withdrawColl(carol, withdrawnColl, carol, carol, { from: carol })
 
     const alice_Coll_1 = ((await troveManager.Troves(alice))[1]
       .add(await troveManager.getPendingETHReward(alice)))
@@ -1266,11 +1266,11 @@ contract('TroveManager - Redistribution reward calculations', async accounts => 
 
     //Bob adds 1 ETH to his trove
     const B_addedColl = toBN(dec(1, 'ether'))
-    await borrowerOperations.addColl(B_addedColl, bob, bob, { from: bob })
+    await borrowerOperations.addColl(bob, B_addedColl, bob, bob, { from: bob })
 
     //Carol  withdraws 1 ETH from her trove
     const C_withdrawnColl = toBN(dec(1, 'ether'))
-    await borrowerOperations.withdrawColl(C_withdrawnColl, carol, carol, { from: carol })
+    await borrowerOperations.withdrawColl(carol, C_withdrawnColl, carol, carol, { from: carol })
 
     const B_collAfterL1 = B_coll.add(B_pendingRewardsAfterL1).add(B_addedColl)
     const C_collAfterL1 = C_coll.add(C_pendingRewardsAfterL1).sub(C_withdrawnColl)
@@ -1304,7 +1304,7 @@ contract('TroveManager - Redistribution reward calculations', async accounts => 
 
     // D tops up
     const D_addedColl = toBN(dec(1, 'ether'))
-    await borrowerOperations.addColl(D_addedColl, dennis, dennis, { from: dennis })
+    await borrowerOperations.addColl(dennis, D_addedColl, dennis, dennis, { from: dennis })
 
     // Price drops to 1
     await priceFeed.setPrice(dec(1, 18))
@@ -1398,11 +1398,11 @@ contract('TroveManager - Redistribution reward calculations', async accounts => 
 
     // Bob adds 11.33909 ETH to his trove
     const B_addedColl = toBN('11339090000000000000')
-    await borrowerOperations.addColl(B_addedColl, bob, bob, { from: bob })
+    await borrowerOperations.addColl(bob, B_addedColl, bob, bob, { from: bob })
 
     // Carol withdraws 15 ETH from her trove
     const C_withdrawnColl = toBN(dec(15, 'ether'))
-    await borrowerOperations.withdrawColl(C_withdrawnColl, carol, carol, { from: carol })
+    await borrowerOperations.withdrawColl(carol, C_withdrawnColl, carol, carol, { from: carol })
 
     const B_collAfterL1 = B_coll.add(B_pendingRewardsAfterL1).add(B_addedColl)
     const C_collAfterL1 = C_coll.add(C_pendingRewardsAfterL1).sub(C_withdrawnColl)
@@ -1440,7 +1440,7 @@ contract('TroveManager - Redistribution reward calculations', async accounts => 
 
     // D tops up
     const D_addedColl = toBN(dec(1, 'ether'))
-    await borrowerOperations.addColl(D_addedColl, dennis, dennis, { from: dennis })
+    await borrowerOperations.addColl(dennis, D_addedColl, dennis, dennis, { from: dennis })
 
     const D_collAfterL2 = D_coll.add(D_pendingRewardsAfterL2).add(D_addedColl)
 
