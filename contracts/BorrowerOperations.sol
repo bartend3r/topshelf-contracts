@@ -13,8 +13,9 @@ import "./Dependencies/Ownable.sol";
 import "./Dependencies/CheckContract.sol";
 import "./Dependencies/console.sol";
 import "./Dependencies/IERC20.sol";
+import "./Dependencies/DelegatedOps.sol";
 
-contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOperations {
+contract BorrowerOperations is LiquityBase, Ownable, CheckContract, DelegatedOps, IBorrowerOperations {
     string constant public NAME = "BorrowerOperations";
 
     // --- Connected contract declarations ---
@@ -169,7 +170,18 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
 
     // --- Borrower Trove Operations ---
 
-    function openTrove(uint _maxFeePercentage, uint _collateralAmount, uint _LUSDAmount, address _upperHint, address _lowerHint) external override {
+    function openTrove(
+        address _account,
+        uint _maxFeePercentage,
+        uint _collateralAmount,
+        uint _LUSDAmount,
+        address _upperHint,
+        address _lowerHint
+    )
+        external
+        callerOrDelegated(_account)
+        override
+    {
         ContractsCache memory contractsCache = ContractsCache(troveManager, activePool, lusdToken);
         LocalVariables_openTrove memory vars;
 
@@ -177,7 +189,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         bool isRecoveryMode = _checkRecoveryMode(vars.price);
 
         _requireValidMaxFeePercentage(_maxFeePercentage, isRecoveryMode);
-        _requireTroveisNotActive(contractsCache.troveManager, msg.sender);
+        _requireTroveisNotActive(contractsCache.troveManager, _account);
 
         vars.LUSDFee;
         vars.netDebt = _LUSDAmount;
@@ -204,29 +216,36 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         }
 
         // Set the trove struct's properties
-        contractsCache.troveManager.setTroveStatus(msg.sender, 1);
-        contractsCache.troveManager.increaseTroveColl(msg.sender, _collateralAmount);
-        contractsCache.troveManager.increaseTroveDebt(msg.sender, vars.compositeDebt);
+        contractsCache.troveManager.setTroveStatus(_account, 1);
+        contractsCache.troveManager.increaseTroveColl(_account, _collateralAmount);
+        contractsCache.troveManager.increaseTroveDebt(_account, vars.compositeDebt);
 
-        contractsCache.troveManager.updateTroveRewardSnapshots(msg.sender);
-        vars.stake = contractsCache.troveManager.updateStakeAndTotalStakes(msg.sender);
+        contractsCache.troveManager.updateTroveRewardSnapshots(_account);
+        vars.stake = contractsCache.troveManager.updateStakeAndTotalStakes(_account);
 
-        sortedTroves.insert(msg.sender, vars.NICR, _upperHint, _lowerHint);
-        vars.arrayIndex = contractsCache.troveManager.addTroveOwnerToArray(msg.sender);
-        emit TroveCreated(msg.sender, vars.arrayIndex);
+        sortedTroves.insert(_account, vars.NICR, _upperHint, _lowerHint);
+        vars.arrayIndex = contractsCache.troveManager.addTroveOwnerToArray(_account);
+        emit TroveCreated(_account, vars.arrayIndex);
 
-        // Move the ether to the Active Pool, and mint the LUSDAmount to the borrower
+        // Move the ether to the Active Pool, and mint the LUSDAmount to the caller
         _activePoolAddColl(contractsCache.activePool, _collateralAmount);
         _withdrawLUSD(contractsCache.activePool, contractsCache.lusdToken, msg.sender, _LUSDAmount, vars.netDebt);
         // Move the LUSD gas compensation to the Gas Pool
         _withdrawLUSD(contractsCache.activePool, contractsCache.lusdToken, gasPoolAddress, LUSD_GAS_COMPENSATION, LUSD_GAS_COMPENSATION);
 
-        emit TroveUpdated(msg.sender, vars.compositeDebt, _collateralAmount, vars.stake, BorrowerOperation.openTrove);
-        emit LUSDBorrowingFeePaid(msg.sender, vars.LUSDFee);
+        emit TroveUpdated(_account, vars.compositeDebt, _collateralAmount, vars.stake, BorrowerOperation.openTrove);
+        emit LUSDBorrowingFeePaid(_account, vars.LUSDFee);
     }
 
     // Send ETH as collateral to a trove
-    function addColl(uint _collateralAmount, address _upperHint, address _lowerHint) external override {
+    function addColl(
+        uint _collateralAmount,
+        address _upperHint,
+        address _lowerHint
+    )
+        external
+        override
+    {
         _adjustTrove(msg.sender, _collateralAmount, 0, 0, false, _upperHint, _lowerHint, 0);
     }
 
@@ -262,7 +281,18 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
     *
     * If both are positive, it will revert.
     */
-    function _adjustTrove(address _borrower, uint _collDeposit, uint _collWithdrawal, uint _LUSDChange, bool _isDebtIncrease, address _upperHint, address _lowerHint, uint _maxFeePercentage) internal {
+    function _adjustTrove(
+        address _borrower,
+        uint _collDeposit,
+        uint _collWithdrawal,
+        uint _LUSDChange,
+        bool _isDebtIncrease,
+        address _upperHint,
+        address _lowerHint,
+        uint _maxFeePercentage
+    )
+        internal
+    {
         ContractsCache memory contractsCache = ContractsCache(troveManager, activePool, lusdToken);
         LocalVariables_adjustTrove memory vars;
 

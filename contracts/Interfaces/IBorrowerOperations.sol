@@ -42,7 +42,7 @@ interface IBorrowerOperations {
         address _collateralStakingAddress
     ) external;
 
-    function openTrove(uint _maxFee, uint _collateralAmount, uint _LUSDAmount, address _upperHint, address _lowerHint) external;
+    function openTrove(address _account, uint _maxFee, uint _collateralAmount, uint _LUSDAmount, address _upperHint, address _lowerHint) external;
 
     function addColl(uint _collateralAmount, address _upperHint, address _lowerHint) external;
 
