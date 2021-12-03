@@ -550,7 +550,7 @@ class TestHelper {
     for (const account of accounts) {
       const {upperHint, lowerHint} = await this.getBorrowerOpsListHint(contracts, ETHAmount, totalDebt)
 
-      const tx = await contracts.borrowerOperations.openTrove(this._100pct, LUSDAmount, upperHint, lowerHint, { from: account, value: ETHAmount })
+      const tx = await contracts.borrowerOperations.openTrove(account, this._100pct, LUSDAmount, upperHint, lowerHint, { from: account, value: ETHAmount })
       const gas = this.gasUsed(tx)
       gasCostList.push(gas)
     }
@@ -565,7 +565,7 @@ class TestHelper {
       const randCollAmount = this.randAmountInWei(minETH, maxETH)
       const {upperHint, lowerHint} = await this.getBorrowerOpsListHint(contracts, randCollAmount, totalDebt)
 
-      const tx = await contracts.borrowerOperations.openTrove(this._100pct, LUSDAmount, upperHint, lowerHint, { from: account, value: randCollAmount })
+      const tx = await contracts.borrowerOperations.openTrove(account, this._100pct, LUSDAmount, upperHint, lowerHint, { from: account, value: randCollAmount })
       const gas = this.gasUsed(tx)
       gasCostList.push(gas)
     }
@@ -582,7 +582,7 @@ class TestHelper {
 
       const {upperHint, lowerHint} = await this.getBorrowerOpsListHint(contracts, randCollAmount, totalDebt)
 
-      const tx = await contracts.borrowerOperations.openTrove(this._100pct, proportionalLUSD, upperHint, lowerHint, { from: account, value: randCollAmount })
+      const tx = await contracts.borrowerOperations.openTrove(account, this._100pct, proportionalLUSD, upperHint, lowerHint, { from: account, value: randCollAmount })
       const gas = this.gasUsed(tx)
       gasCostList.push(gas)
     }
@@ -605,7 +605,7 @@ class TestHelper {
       const {upperHint, lowerHint} = await this.getBorrowerOpsListHint(contracts, randCollAmount, totalDebt)
 
       const feeFloor = this.dec(5, 16)
-      const tx = await contracts.borrowerOperations.openTrove(this._100pct, proportionalLUSD, upperHint, lowerHint, { from: account, value: randCollAmount })
+      const tx = await contracts.borrowerOperations.openTrove(account, this._100pct, proportionalLUSD, upperHint, lowerHint, { from: account, value: randCollAmount })
 
       if (logging && tx.receipt.status) {
         i++
@@ -626,7 +626,7 @@ class TestHelper {
       const totalDebt = await this.getOpenTroveTotalDebt(contracts, randLUSDAmount)
       const {upperHint, lowerHint} = await this.getBorrowerOpsListHint(contracts, ETHAmount, totalDebt)
 
-      const tx = await contracts.borrowerOperations.openTrove(this._100pct, randLUSDAmount, upperHint, lowerHint, { from: account, value: ETHAmount })
+      const tx = await contracts.borrowerOperations.openTrove(account, this._100pct, randLUSDAmount, upperHint, lowerHint, { from: account, value: ETHAmount })
       const gas = this.gasUsed(tx)
       gasCostList.push(gas)
     }
@@ -654,7 +654,7 @@ class TestHelper {
       const totalDebt = await this.getOpenTroveTotalDebt(contracts, LUSDAmountWei)
       const {upperHint, lowerHint} = await this.getBorrowerOpsListHint(contracts, ETHAmount, totalDebt)
 
-      const tx = await contracts.borrowerOperations.openTrove(this._100pct, LUSDAmountWei, upperHint, lowerHint, { from: account, value: ETHAmount })
+      const tx = await contracts.borrowerOperations.openTrove(account, this._100pct, LUSDAmountWei, upperHint, lowerHint, { from: account, value: ETHAmount })
       const gas = this.gasUsed(tx)
       gasCostList.push(gas)
       i += 1
@@ -691,7 +691,7 @@ class TestHelper {
       const price = await contracts.priceFeedTestnet.getPrice()
       collatAmount = ICR.mul(totalDebt).div(price)
     }
-    const tx = await contracts.borrowerOperations.openTrove(maxFeePercentage, collatAmount, lusdAmount, upperHint, lowerHint, extraParams)
+    const tx = await contracts.borrowerOperations.openTrove(extraParams.from, maxFeePercentage, collatAmount, lusdAmount, upperHint, lowerHint, extraParams)
 
     return {
       lusdAmount,
@@ -1002,7 +1002,7 @@ class TestHelper {
     for (const account of accounts) {
       const coll = web3.utils.toWei(amountFinney.toString(), 'finney')
 
-      await contracts.borrowerOperations.openTrove(this._100pct, '200000000000000000000', account, account, { from: account, value: coll })
+      await contracts.borrowerOperations.openTrove(account, this._100pct, '200000000000000000000', account, account, { from: account, value: coll })
 
       amountFinney += 10
     }

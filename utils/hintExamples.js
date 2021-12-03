@@ -54,7 +54,7 @@ async function main() {
 
   // Finally, call openTrove with the exact upperHint and lowerHint
   const maxFee = '5'.concat('0'.repeat(16)) // Slippage protection: 5%
-  await borrowerOperations.openTrove(maxFee, LUSDAmount, upperHint, lowerHint, { value: ETHColl })
+  await borrowerOperations.openTrove(borrower, maxFee, LUSDAmount, upperHint, lowerHint, { value: ETHColl })
 
   // --- adjust trove ---
 

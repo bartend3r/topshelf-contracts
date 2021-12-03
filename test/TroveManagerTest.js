@@ -2764,9 +2764,9 @@ contract('TroveManager', async accounts => {
   })
 
   it("redeemCollateral(): performs partial redemption if resultant debt is > minimum net debt", async () => {
-    await borrowerOperations.openTrove(th._100pct, dec(1000, 'ether'), await getOpenTroveLUSDAmount(dec(10000, 18)), A, A, { from: A })
-    await borrowerOperations.openTrove(th._100pct, dec(1000, 'ether'), await getOpenTroveLUSDAmount(dec(20000, 18)), B, B, { from: B })
-    await borrowerOperations.openTrove(th._100pct, dec(1000, 'ether'), await getOpenTroveLUSDAmount(dec(30000, 18)), C, C, { from: C })
+    await borrowerOperations.openTrove(A, th._100pct, dec(1000, 'ether'), await getOpenTroveLUSDAmount(dec(10000, 18)), A, A, { from: A })
+    await borrowerOperations.openTrove(B, th._100pct, dec(1000, 'ether'), await getOpenTroveLUSDAmount(dec(20000, 18)), B, B, { from: B })
+    await borrowerOperations.openTrove(C, th._100pct, dec(1000, 'ether'), await getOpenTroveLUSDAmount(dec(30000, 18)), C, C, { from: C })
 
     // A and C send all their tokens to B
     await lusdToken.transfer(B, await lusdToken.balanceOf(A), {from: A})
@@ -2792,9 +2792,9 @@ contract('TroveManager', async accounts => {
   })
 
   it("redeemCollateral(): doesn't perform partial redemption if resultant debt would be < minimum net debt", async () => {
-    await borrowerOperations.openTrove(th._100pct, dec(1000, 'ether'), await getOpenTroveLUSDAmount(dec(6000, 18)), A, A, { from: A })
-    await borrowerOperations.openTrove(th._100pct, dec(1000, 'ether'), await getOpenTroveLUSDAmount(dec(20000, 18)), B, B, { from: B })
-    await borrowerOperations.openTrove(th._100pct, dec(1000, 'ether'), await getOpenTroveLUSDAmount(dec(30000, 18)), C, C, { from: C })
+    await borrowerOperations.openTrove(A, th._100pct, dec(1000, 'ether'), await getOpenTroveLUSDAmount(dec(6000, 18)), A, A, { from: A })
+    await borrowerOperations.openTrove(B, th._100pct, dec(1000, 'ether'), await getOpenTroveLUSDAmount(dec(20000, 18)), B, B, { from: B })
+    await borrowerOperations.openTrove(C, th._100pct, dec(1000, 'ether'), await getOpenTroveLUSDAmount(dec(30000, 18)), C, C, { from: C })
 
     // A and C send all their tokens to B
     await lusdToken.transfer(B, await lusdToken.balanceOf(A), {from: A})
@@ -4154,7 +4154,7 @@ contract('TroveManager', async accounts => {
     assert.isTrue(D_balanceAfter.eq(D_balanceBefore))
 
     // D is not closed, so cannot open trove
-    await assertRevert(borrowerOperations.openTrove(th._100pct, dec(10, 18), 0, ZERO_ADDRESS, ZERO_ADDRESS, { from: D }), 'BorrowerOps: Trove is active')
+    await assertRevert(borrowerOperations.openTrove(D, th._100pct, dec(10, 18), 0, ZERO_ADDRESS, ZERO_ADDRESS, { from: D }), 'BorrowerOps: Trove is active')
 
     return {
       A_netDebt, A_coll,
