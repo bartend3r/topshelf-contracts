@@ -2639,7 +2639,7 @@ contract('BorrowerOperations', async accounts => {
       assert.isFalse(await troveManager.checkRecoveryMode(price))
 
       await assertRevert(
-        borrowerOperations.closeTrove({ from: alice }),
+        borrowerOperations.closeTrove(alice, { from: alice }),
         "BorrowerOps: An operation that would result in TCR < CCR is not permitted"
       )
     })
@@ -2650,7 +2650,7 @@ contract('BorrowerOperations', async accounts => {
 
       // Carol with no active trove attempts to close her trove
       try {
-        const txCarol = await borrowerOperations.closeTrove({ from: carol })
+        const txCarol = await borrowerOperations.closeTrove(carol, { from: carol })
         assert.isFalse(txCarol.receipt.status)
       } catch (err) {
         assert.include(err.message, "revert")
@@ -2671,7 +2671,7 @@ contract('BorrowerOperations', async accounts => {
       assert.isFalse(await th.checkRecoveryMode(contracts))
 
       // Bob successfully closes his trove
-      const txBob = await borrowerOperations.closeTrove({ from: bob })
+      const txBob = await borrowerOperations.closeTrove(bob, { from: bob })
       assert.isTrue(txBob.receipt.status)
 
       await priceFeed.setPrice(dec(100, 18))
@@ -2679,7 +2679,7 @@ contract('BorrowerOperations', async accounts => {
       assert.isTrue(await th.checkRecoveryMode(contracts))
 
       // Carol attempts to close her trove during Recovery Mode
-      await assertRevert(borrowerOperations.closeTrove({ from: carol }), "BorrowerOps: Operation not permitted during Recovery Mode")
+      await assertRevert(borrowerOperations.closeTrove(carol, { from: carol }), "BorrowerOps: Operation not permitted during Recovery Mode")
     })
 
     it("closeTrove(): reverts when trove is the only one in the system", async () => {
@@ -2697,7 +2697,7 @@ contract('BorrowerOperations', async accounts => {
       assert.isFalse(await th.checkRecoveryMode(contracts))
 
       // Alice attempts to close her trove
-      await assertRevert(borrowerOperations.closeTrove({ from: alice }), "TroveManager: Only one trove in the system")
+      await assertRevert(borrowerOperations.closeTrove(alice, { from: alice }), "TroveManager: Only one trove in the system")
     })
 
     it("closeTrove(): reduces a Trove's collateral to zero", async () => {
@@ -2714,7 +2714,7 @@ contract('BorrowerOperations', async accounts => {
       await lusdToken.transfer(alice, dennisLUSD.div(toBN(2)), { from: dennis })
 
       // Alice attempts to close trove
-      await borrowerOperations.closeTrove({ from: alice })
+      await borrowerOperations.closeTrove(alice, { from: alice })
 
       const aliceCollAfter = await getTroveEntireColl(alice)
       assert.equal(aliceCollAfter, '0')
@@ -2734,7 +2734,7 @@ contract('BorrowerOperations', async accounts => {
       await lusdToken.transfer(alice, dennisLUSD.div(toBN(2)), { from: dennis })
 
       // Alice attempts to close trove
-      await borrowerOperations.closeTrove({ from: alice })
+      await borrowerOperations.closeTrove(alice, { from: alice })
 
       const aliceCollAfter = await getTroveEntireColl(alice)
       assert.equal(aliceCollAfter, '0')
@@ -2756,7 +2756,7 @@ contract('BorrowerOperations', async accounts => {
       await lusdToken.transfer(alice, dennisLUSD.div(toBN(2)), { from: dennis })
 
       // Alice attempts to close trove
-      await borrowerOperations.closeTrove({ from: alice })
+      await borrowerOperations.closeTrove(alice, { from: alice })
 
       const stakeAfter = ((await troveManager.Troves(alice))[2]).toString()
       assert.equal(stakeAfter, '0')
@@ -2809,7 +2809,7 @@ contract('BorrowerOperations', async accounts => {
       await priceFeed.setPrice(dec(200, 18))
 
       // Alice closes trove
-      await borrowerOperations.closeTrove({ from: alice })
+      await borrowerOperations.closeTrove(alice, { from: alice })
 
       // Check Alice's pending reward snapshots are zero
       const L_ETH_Snapshot_A_afterAliceCloses = (await troveManager.rewardSnapshots(alice))[0]
@@ -2835,7 +2835,7 @@ contract('BorrowerOperations', async accounts => {
       await lusdToken.transfer(alice, await lusdToken.balanceOf(dennis), { from: dennis })
 
       // Close the trove
-      await borrowerOperations.closeTrove({ from: alice })
+      await borrowerOperations.closeTrove(alice, { from: alice })
 
       const alice_Trove_After = await troveManager.Troves(alice)
       const status_After = alice_Trove_After[3]
@@ -2864,7 +2864,7 @@ contract('BorrowerOperations', async accounts => {
       await lusdToken.transfer(alice, await lusdToken.balanceOf(dennis), { from: dennis })
 
       // Close the trove
-      await borrowerOperations.closeTrove({ from: alice })
+      await borrowerOperations.closeTrove(alice, { from: alice })
 
       // Check after
       const activePool_ETH_After = await activePool.getETH()
@@ -2891,7 +2891,7 @@ contract('BorrowerOperations', async accounts => {
       await lusdToken.transfer(alice, await lusdToken.balanceOf(dennis), { from: dennis })
 
       // Close the trove
-      await borrowerOperations.closeTrove({ from: alice })
+      await borrowerOperations.closeTrove(alice, { from: alice })
 
       // Check after
       const activePool_Debt_After = (await activePool.getLUSDDebt()).toString()
@@ -2919,7 +2919,7 @@ contract('BorrowerOperations', async accounts => {
       await lusdToken.transfer(alice, await lusdToken.balanceOf(dennis), { from: dennis })
 
       // Alice closes trove
-      await borrowerOperations.closeTrove({ from: alice })
+      await borrowerOperations.closeTrove(alice, { from: alice })
 
       // Check stake and total stakes get updated
       const aliceStakeAfter = await getTroveStake(alice)
@@ -2942,7 +2942,7 @@ contract('BorrowerOperations', async accounts => {
         // to compensate borrowing fees
         await lusdToken.transfer(alice, await lusdToken.balanceOf(dennis), { from: dennis })
 
-        await borrowerOperations.closeTrove({ from: alice, gasPrice: 0 })
+        await borrowerOperations.closeTrove(alice, { from: alice, gasPrice: 0 })
 
         const alice_ETHBalance_After = web3.utils.toBN(await contracts.collateral.balanceOf(alice))
         const balanceDiff = alice_ETHBalance_After.sub(alice_ETHBalance_Before)
@@ -2965,7 +2965,7 @@ contract('BorrowerOperations', async accounts => {
       assert.isTrue(alice_LUSDBalance_Before.gt(toBN('0')))
 
       // close trove
-      await borrowerOperations.closeTrove({ from: alice })
+      await borrowerOperations.closeTrove(alice, { from: alice })
 
       // check alice LUSD balance after
       const alice_LUSDBalance_After = await lusdToken.balanceOf(alice)
@@ -3029,7 +3029,7 @@ contract('BorrowerOperations', async accounts => {
       assert.isTrue(pendingDebtReward_A.gt('0'))
 
       // Close Alice's trove. Alice's pending rewards should be removed from the DefaultPool when she close.
-      await borrowerOperations.closeTrove({ from: alice })
+      await borrowerOperations.closeTrove(alice, { from: alice })
 
       const defaultPool_ETH_afterAliceCloses = await defaultPool.getETH()
       const defaultPool_LUSDDebt_afterAliceCloses = await defaultPool.getLUSDDebt()
@@ -3043,7 +3043,7 @@ contract('BorrowerOperations', async accounts => {
       await borrowerOperations.adjustTrove(th._100pct, 0, 0, dec(1, 18), true, whale, whale, { from: whale })
 
       // Close Bob's trove. Expect DefaultPool coll and debt to drop to 0, since closing pulls his rewards out.
-      await borrowerOperations.closeTrove({ from: bob })
+      await borrowerOperations.closeTrove(bob, { from: bob })
 
       const defaultPool_ETH_afterBobCloses = await defaultPool.getETH()
       const defaultPool_LUSDDebt_afterBobCloses = await defaultPool.getLUSDDebt()
@@ -3062,7 +3062,7 @@ contract('BorrowerOperations', async accounts => {
 
       assert.isTrue(B_LUSDBal.lt(B_troveDebt))
 
-      const closeTrovePromise_B = borrowerOperations.closeTrove({ from: B })
+      const closeTrovePromise_B = borrowerOperations.closeTrove(B, { from: B })
 
       // Check closing trove reverts
       await assertRevert(closeTrovePromise_B, "BorrowerOps: Caller doesnt have enough LUSD to make repayment")
@@ -3870,7 +3870,7 @@ contract('BorrowerOperations', async accounts => {
       await lusdToken.transfer(alice, dec(10000, 18), { from: whale })
 
       // Repay and close Trove
-      await borrowerOperations.closeTrove({ from: alice })
+      await borrowerOperations.closeTrove(alice, { from: alice })
 
       // Check Trove is closed
       const alice_Trove_2 = await troveManager.Troves(alice)

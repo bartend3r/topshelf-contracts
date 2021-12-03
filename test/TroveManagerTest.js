@@ -2163,7 +2163,7 @@ contract('TroveManager', async accounts => {
     const price = await priceFeed.getPrice()
 
     // Carol liquidated, and her trove is closed
-    const txCarolClose = await borrowerOperations.closeTrove({ from: carol })
+    const txCarolClose = await borrowerOperations.closeTrove(carol, { from: carol })
     assert.isTrue(txCarolClose.receipt.status)
 
     assert.isFalse(await sortedTroves.contains(carol))
@@ -4565,7 +4565,7 @@ contract('TroveManager', async accounts => {
 
     // to be able to repay:
     await lusdToken.transfer(B, B_totalDebt, { from: A })
-    await borrowerOperations.closeTrove({from: B})
+    await borrowerOperations.closeTrove(B, {from: B})
 
     const A_Status = await troveManager.getTroveStatus(A)
     const B_Status = await troveManager.getTroveStatus(B)

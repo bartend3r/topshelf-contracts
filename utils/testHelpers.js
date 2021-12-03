@@ -637,7 +637,7 @@ class TestHelper {
     const gasCostList = []
 
     for (const account of accounts) {
-      const tx = await contracts.borrowerOperations.closeTrove({ from: account })
+      const tx = await contracts.borrowerOperations.closeTrove(account, { from: account })
       const gas = this.gasUsed(tx)
       gasCostList.push(gas)
     }

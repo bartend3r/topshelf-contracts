@@ -121,9 +121,9 @@ contract('SortedTroves', async accounts => {
       await lusdToken.transfer(carol, dec(1000, 18), { from: whale })
 
       // A, B, C close troves
-      await borrowerOperations.closeTrove({ from: alice })
-      await borrowerOperations.closeTrove({ from:bob })
-      await borrowerOperations.closeTrove({ from:carol })
+      await borrowerOperations.closeTrove(alice, { from: alice })
+      await borrowerOperations.closeTrove(bob, { from:bob })
+      await borrowerOperations.closeTrove(carol, { from:carol })
 
       // Confirm trove statuses became closed
       assert.equal((await troveManager.Troves(alice))[3], '2')
@@ -150,9 +150,9 @@ contract('SortedTroves', async accounts => {
       await lusdToken.transfer(carol, dec(1000, 18), { from: whale })
 
       // A, B, C close troves
-      await borrowerOperations.closeTrove({ from: alice })
-      await borrowerOperations.closeTrove({ from:bob })
-      await borrowerOperations.closeTrove({ from:carol })
+      await borrowerOperations.closeTrove(alice, { from: alice })
+      await borrowerOperations.closeTrove(bob, { from:bob })
+      await borrowerOperations.closeTrove(carol, { from:carol })
 
       // Confirm trove statuses became closed
       assert.equal((await troveManager.Troves(alice))[3], '2')
