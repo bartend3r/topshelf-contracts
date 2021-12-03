@@ -239,39 +239,80 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, DelegatedOps
 
     // Send ETH as collateral to a trove
     function addColl(
+        address _account,
         uint _collateralAmount,
+        address _upperHint,
+        address _lowerHint
+    )
+        external
+        callerOrDelegated(_account)
+        override
+    {
+        _adjustTrove(_account, msg.sender, _collateralAmount, 0, 0, false, _upperHint, _lowerHint, 0);
+    }
+
+    // Send ETH as collateral to a trove. Called by only the Stability Pool.
+    function moveETHGainToTrove(uint _collateralAmount, address _borrower, address _upperHint, address _lowerHint) external override {
+        _requireCallerIsStabilityPool();
+        _adjustTrove(msg.sender, _borrower, _collateralAmount, 0, 0, false, _upperHint, _lowerHint, 0);
+    }
+
+    // Withdraw ETH collateral from a trove
+    function withdrawColl(
+        address _account,
+        uint _collWithdrawal,
+        address _upperHint,
+        address _lowerHint
+    )
+        external
+        callerOrDelegated(_account)
+        override
+    {
+        _adjustTrove(_account, msg.sender, 0, _collWithdrawal, 0, false, _upperHint, _lowerHint, 0);
+    }
+
+    // Withdraw LUSD tokens from a trove: mint new LUSD tokens to the owner, and increase the trove's debt accordingly
+    function withdrawLUSD(
+        address _account,
+        uint _maxFeePercentage,
+        uint _LUSDAmount,
+        address _upperHint,
+        address _lowerHint
+    )
+        external
+        callerOrDelegated(_account)
+        override
+    {
+        _adjustTrove(_account, msg.sender, 0, 0, _LUSDAmount, true, _upperHint, _lowerHint, _maxFeePercentage);
+    }
+
+    // Repay LUSD tokens to a Trove: Burn the repaid LUSD tokens, and reduce the trove's debt accordingly
+    function repayLUSD(
+        address _account,
+        uint _LUSDAmount,
+        address _upperHint,
+        address _lowerHint
+    )
+        external
+        callerOrDelegated(_account)
+        override
+    {
+        _adjustTrove(_account, msg.sender, 0, 0, _LUSDAmount, false, _upperHint, _lowerHint, 0);
+    }
+
+    function adjustTrove(
+        uint _maxFeePercentage,
+        uint _collDeposit,
+        uint _collWithdrawal,
+        uint _LUSDChange,
+        bool _isDebtIncrease,
         address _upperHint,
         address _lowerHint
     )
         external
         override
     {
-        _adjustTrove(msg.sender, _collateralAmount, 0, 0, false, _upperHint, _lowerHint, 0);
-    }
-
-    // Send ETH as collateral to a trove. Called by only the Stability Pool.
-    function moveETHGainToTrove(uint _collateralAmount, address _borrower, address _upperHint, address _lowerHint) external override {
-        _requireCallerIsStabilityPool();
-        _adjustTrove(_borrower, _collateralAmount, 0, 0, false, _upperHint, _lowerHint, 0);
-    }
-
-    // Withdraw ETH collateral from a trove
-    function withdrawColl(uint _collWithdrawal, address _upperHint, address _lowerHint) external override {
-        _adjustTrove(msg.sender, 0, _collWithdrawal, 0, false, _upperHint, _lowerHint, 0);
-    }
-
-    // Withdraw LUSD tokens from a trove: mint new LUSD tokens to the owner, and increase the trove's debt accordingly
-    function withdrawLUSD(uint _maxFeePercentage, uint _LUSDAmount, address _upperHint, address _lowerHint) external override {
-        _adjustTrove(msg.sender, 0, 0, _LUSDAmount, true, _upperHint, _lowerHint, _maxFeePercentage);
-    }
-
-    // Repay LUSD tokens to a Trove: Burn the repaid LUSD tokens, and reduce the trove's debt accordingly
-    function repayLUSD(uint _LUSDAmount, address _upperHint, address _lowerHint) external override {
-        _adjustTrove(msg.sender, 0, 0, _LUSDAmount, false, _upperHint, _lowerHint, 0);
-    }
-
-    function adjustTrove(uint _maxFeePercentage, uint _collDeposit, uint _collWithdrawal, uint _LUSDChange, bool _isDebtIncrease, address _upperHint, address _lowerHint) external override {
-        _adjustTrove(msg.sender, _collDeposit, _collWithdrawal, _LUSDChange, _isDebtIncrease, _upperHint, _lowerHint, _maxFeePercentage);
+        _adjustTrove(msg.sender, msg.sender, _collDeposit, _collWithdrawal, _LUSDChange, _isDebtIncrease, _upperHint, _lowerHint, _maxFeePercentage);
     }
 
     /*
@@ -282,6 +323,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, DelegatedOps
     * If both are positive, it will revert.
     */
     function _adjustTrove(
+        address _caller,
         address _borrower,
         uint _collDeposit,
         uint _collWithdrawal,
@@ -308,7 +350,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, DelegatedOps
         _requireTroveisActive(contractsCache.troveManager, _borrower);
 
         // Confirm the operation is either a borrower adjusting their own trove, or a pure ETH transfer from the Stability Pool to a trove
-        assert(msg.sender == _borrower || (msg.sender == stabilityPoolAddress && _collDeposit > 0 && _LUSDChange == 0));
+        assert(_caller == _borrower || (_caller == stabilityPoolAddress && _collDeposit > 0 && _LUSDChange == 0));
 
         contractsCache.troveManager.applyPendingRewards(_borrower);
 
@@ -338,7 +380,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, DelegatedOps
         if (!_isDebtIncrease && _LUSDChange > 0) {
             _requireAtLeastMinNetDebt(_getNetDebt(vars.debt).sub(vars.netDebtChange));
             _requireValidLUSDRepayment(vars.debt, vars.netDebtChange);
-            _requireSufficientLUSDBalance(contractsCache.lusdToken, _borrower, vars.netDebtChange);
+            _requireSufficientLUSDBalance(contractsCache.lusdToken, _caller, vars.netDebtChange);
         }
 
         (vars.newColl, vars.newDebt) = _updateTroveFromAdjustment(contractsCache.troveManager, _borrower, vars.collChange, vars.isCollIncrease, vars.netDebtChange, _isDebtIncrease);
@@ -349,13 +391,13 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, DelegatedOps
         sortedTroves.reInsert(_borrower, newNICR, _upperHint, _lowerHint);
 
         emit TroveUpdated(_borrower, vars.newDebt, vars.newColl, vars.stake, BorrowerOperation.adjustTrove);
-        emit LUSDBorrowingFeePaid(msg.sender,  vars.LUSDFee);
+        emit LUSDBorrowingFeePaid(_caller,  vars.LUSDFee);
 
         // Use the unmodified _LUSDChange here, as we don't send the fee to the user
         _moveTokensAndETHfromAdjustment(
             contractsCache.activePool,
             contractsCache.lusdToken,
-            msg.sender,
+            _caller,
             vars.collChange,
             vars.isCollIncrease,
             _LUSDChange,
