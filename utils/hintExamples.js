@@ -79,7 +79,7 @@ async function main() {
   ({ 0: upperHint, 1: lowerHint } = await sortedTroves.findInsertPosition(NICR, approxHint, approxHint))
 
   // Call adjustTrove with the exact upperHint and lowerHint
-  await borrowerOperations.adjustTrove(maxFee, 0, LUSDRepayment, false, upperHint, lowerHint, {value: collIncrease})
+  await borrowerOperations.adjustTrove(borrower, maxFee, 0, LUSDRepayment, false, upperHint, lowerHint, {value: collIncrease})
 
 
   // --- RedeemCollateral ---

@@ -757,11 +757,11 @@ class TestHelper {
 
       // Add ETH to trove
       if (ETHChangeBN.gt(zero)) {
-        tx = await contracts.borrowerOperations.adjustTrove(this._100pct, 0, LUSDChangeBN, isDebtIncrease, upperHint, lowerHint, { from: account, value: ETHChangeBN })
+        tx = await contracts.borrowerOperations.adjustTrove(account, this._100pct, 0, LUSDChangeBN, isDebtIncrease, upperHint, lowerHint, { from: account, value: ETHChangeBN })
       // Withdraw ETH from trove
       } else if (ETHChangeBN.lt(zero)) {
         ETHChangeBN = ETHChangeBN.neg()
-        tx = await contracts.borrowerOperations.adjustTrove(this._100pct, ETHChangeBN, LUSDChangeBN, isDebtIncrease, upperHint, lowerHint, { from: account })
+        tx = await contracts.borrowerOperations.adjustTrove(account, this._100pct, ETHChangeBN, LUSDChangeBN, isDebtIncrease, upperHint, lowerHint, { from: account })
       }
 
       const gas = this.gasUsed(tx)
@@ -789,11 +789,11 @@ class TestHelper {
 
       // Add ETH to trove
       if (ETHChangeBN.gt(zero)) {
-        tx = await contracts.borrowerOperations.adjustTrove(this._100pct, 0, LUSDChangeBN, isDebtIncrease, upperHint, lowerHint, { from: account, value: ETHChangeBN })
+        tx = await contracts.borrowerOperations.adjustTrove(account, this._100pct, 0, LUSDChangeBN, isDebtIncrease, upperHint, lowerHint, { from: account, value: ETHChangeBN })
       // Withdraw ETH from trove
       } else if (ETHChangeBN.lt(zero)) {
         ETHChangeBN = ETHChangeBN.neg()
-        tx = await contracts.borrowerOperations.adjustTrove(this._100pct, ETHChangeBN, LUSDChangeBN, isDebtIncrease, lowerHint,  upperHint,{ from: account })
+        tx = await contracts.borrowerOperations.adjustTrove(account, this._100pct, ETHChangeBN, LUSDChangeBN, isDebtIncrease, lowerHint,  upperHint,{ from: account })
       }
 
       const gas = this.gasUsed(tx)

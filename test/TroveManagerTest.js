@@ -4316,7 +4316,7 @@ contract('TroveManager', async accounts => {
       )
 
       await openTrove({ ICR: toBN(dec(150, 16)), extraParams: { from: bob } })
-      await borrowerOperations.adjustTrove(th._100pct, lusdAmount.mul(mv._1e18BN).div(price), 0, lusdAmount, true, alice, alice, { from: alice })
+      await borrowerOperations.adjustTrove(alice, th._100pct, lusdAmount.mul(mv._1e18BN).div(price), 0, lusdAmount, true, alice, alice, { from: alice })
     }
 
     const {

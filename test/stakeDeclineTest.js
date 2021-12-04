@@ -122,7 +122,7 @@ contract('TroveManager', async accounts => {
     console.log(`B stake after L1: ${(await troveManager.Troves(B))[2]}`)
 
     // adjust trove B 1 wei: apply rewards
-    await borrowerOperations.adjustTrove(th._100pct, 0, 0, 1, false, ZERO_ADDRESS, ZERO_ADDRESS, {from: B})  // B repays 1 wei
+    await borrowerOperations.adjustTrove(B, th._100pct, 0, 0, 1, false, ZERO_ADDRESS, ZERO_ADDRESS, {from: B})  // B repays 1 wei
     console.log(`B stake after A1: ${(await troveManager.Troves(B))[2]}`)
     console.log(`Snapshots ratio after A1: ${await getSnapshotsRatio()}`)
 
@@ -133,7 +133,7 @@ contract('TroveManager', async accounts => {
       await troveManager.liquidate(trove)
       console.log(`B stake after L${idx + 2}: ${(await troveManager.Troves(B))[2]}`)
       console.log(`Snapshots ratio after L${idx + 2}: ${await getSnapshotsRatio()}`)
-      await borrowerOperations.adjustTrove(th._100pct, 0, 0, 1, false, ZERO_ADDRESS, ZERO_ADDRESS, {from: B})  // A repays 1 wei
+      await borrowerOperations.adjustTrove(B, th._100pct, 0, 0, 1, false, ZERO_ADDRESS, ZERO_ADDRESS, {from: B})  // A repays 1 wei
       console.log(`B stake after A${idx + 2}: ${(await troveManager.Troves(B))[2]}`)
     }
   })
