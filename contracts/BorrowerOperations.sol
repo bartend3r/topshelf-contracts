@@ -248,7 +248,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, DelegatedOps
         callerOrDelegated(_account)
         override
     {
-        _adjustTrove(_account, msg.sender, _collateralAmount, 0, 0, false, _upperHint, _lowerHint, 0);
+        _adjustTrove(msg.sender, _account, _collateralAmount, 0, 0, false, _upperHint, _lowerHint, 0);
     }
 
     // Send ETH as collateral to a trove. Called by only the Stability Pool.
@@ -268,7 +268,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, DelegatedOps
         callerOrDelegated(_account)
         override
     {
-        _adjustTrove(_account, msg.sender, 0, _collWithdrawal, 0, false, _upperHint, _lowerHint, 0);
+        _adjustTrove(msg.sender, _account, 0, _collWithdrawal, 0, false, _upperHint, _lowerHint, 0);
     }
 
     // Withdraw LUSD tokens from a trove: mint new LUSD tokens to the owner, and increase the trove's debt accordingly
@@ -283,7 +283,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, DelegatedOps
         callerOrDelegated(_account)
         override
     {
-        _adjustTrove(_account, msg.sender, 0, 0, _LUSDAmount, true, _upperHint, _lowerHint, _maxFeePercentage);
+        _adjustTrove(msg.sender, _account, 0, 0, _LUSDAmount, true, _upperHint, _lowerHint, _maxFeePercentage);
     }
 
     // Repay LUSD tokens to a Trove: Burn the repaid LUSD tokens, and reduce the trove's debt accordingly
@@ -297,10 +297,11 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, DelegatedOps
         callerOrDelegated(_account)
         override
     {
-        _adjustTrove(_account, msg.sender, 0, 0, _LUSDAmount, false, _upperHint, _lowerHint, 0);
+        _adjustTrove(msg.sender, _account, 0, 0, _LUSDAmount, false, _upperHint, _lowerHint, 0);
     }
 
     function adjustTrove(
+        address _account,
         uint _maxFeePercentage,
         uint _collDeposit,
         uint _collWithdrawal,
@@ -312,7 +313,10 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, DelegatedOps
         external
         override
     {
-        _adjustTrove(msg.sender, msg.sender, _collDeposit, _collWithdrawal, _LUSDChange, _isDebtIncrease, _upperHint, _lowerHint, _maxFeePercentage);
+        // inlined instead of using `callerOrDelegated` modifier to prevent stack-too-deep
+        require(msg.sender == _account || isApprovedDelegate[_account][msg.sender]);
+
+        _adjustTrove(msg.sender, _account, _collDeposit, _collWithdrawal, _LUSDChange, _isDebtIncrease, _upperHint, _lowerHint, _maxFeePercentage);
     }
 
     /*
