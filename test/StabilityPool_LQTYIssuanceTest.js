@@ -527,7 +527,7 @@ contract('StabilityPool - LQTY Rewards', async accounts => {
       assert.equal(initialIssuance, 0)
 
       // Whale opens Trove with 10k ETH
-      await borrowerOperations.openTrove(th._100pct, dec(10000, 'ether'), await getOpenTroveLUSDAmount(dec(10000, 18)), whale, whale, { from: whale })
+      await borrowerOperations.openTrove(whale, th._100pct, dec(10000, 'ether'), await getOpenTroveLUSDAmount(dec(10000, 18)), whale, whale, { from: whale })
 
       const allDepositors = [A, B, C, D, E, F, G, H]
 
