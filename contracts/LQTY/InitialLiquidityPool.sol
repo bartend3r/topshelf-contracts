@@ -1,5 +1,6 @@
 pragma solidity 0.6.11;
 
+import "../Dependencies/AggregatorV3Interface.sol";
 import "../Dependencies/IERC20.sol";
 import "../Dependencies/IWETH.sol";
 import "../Dependencies/SafeMath.sol";
@@ -24,17 +25,25 @@ contract InitialLiquidityPool {
     address public lpToken;
     // address that receives the LP tokens
     address public treasury;
+    // chainlink price oracle for ETH/USD
+    AggregatorV3Interface public oracle;
 
     // amount of `rewardToken` that will be added as liquidity
     uint256 public rewardTokenLpAmount;
     // amount of `rewardToken` that will be distributed to contributors
     uint256 public rewardTokenSaleAmount;
 
+    // hardcoded soft and hard caps in USD
+    // the ETH equivalent is calculated when deposits open
+    uint256 public constant softCapInUSD = 1000000;
+    uint256 public constant hardCapInUSD = 5000000;
+
     // the minimum amount of ETH that must be received,
     // if this amount is not reached all contributions may withdraw
-    uint256 public softCap;
+    uint256 public softCapInETH;
     // the maximum ETH amount that the contract will accept
-    uint256 public hardCap;
+    uint256 public hardCapInETH;
+
     // total amount of ETH received from all contributors
     uint256 public totalReceived;
 
@@ -68,22 +77,20 @@ contract InitialLiquidityPool {
     constructor(
         IWETH _weth,
         IERC20 _rewardToken,
+        AggregatorV3Interface _oracle,
         IUniswapV2Factory _factory,
         address _treasury,
-        uint256 _startTime,
-        uint256 _softCap
+        uint256 _startTime
     ) public {
         WETH = _weth;
         rewardToken = _rewardToken;
+        oracle = _oracle;
         treasury = _treasury;
         lpToken = _factory.getPair(address(_weth), address(_rewardToken));
         require(lpToken != address(0));
 
         depositStartTime = _startTime;
         depositEndTime = _startTime.add(86400);
-
-        softCap = _softCap;
-        hardCap = _softCap.mul(5);
     }
 
     // `rewardToken` should be transferred into the contract prior to calling this method
@@ -100,11 +107,20 @@ contract InitialLiquidityPool {
         require(block.timestamp >= depositStartTime, "Not yet started");
         require(block.timestamp < depositEndTime, "Already finished");
 
+        if (softCapInETH == 0) {
+            // on the first deposit, use chainlink to determine
+            // the ETH equivalant for the soft and hard caps
+            uint256 answer = uint256(oracle.latestAnswer());
+            uint256 decimals = oracle.decimals();
+            softCapInETH = softCapInUSD.mul(1e18).mul(10**decimals).div(answer);
+            hardCapInETH = hardCapInUSD.mul(1e18).mul(10**decimals).div(answer);
+        }
+
         uint256 oldTotal = totalReceived;
         uint256 newTotal = oldTotal.add(msg.value);
-        require(newTotal <= hardCap, "Hard cap reached");
+        require(newTotal <= hardCapInETH, "Hard cap reached");
 
-        if (oldTotal < softCap && newTotal >= softCap) {
+        if (oldTotal < softCapInETH && newTotal >= softCapInETH) {
             depositEndTime = block.timestamp.add(gracePeriod);
         }
 
@@ -116,7 +132,7 @@ contract InitialLiquidityPool {
     // call this method to add liquidity and begin reward streaming for contributors
     function addLiquidity() public virtual {
         require(block.timestamp >= depositEndTime, "Deposits are still open");
-        require(totalReceived >= softCap, "Soft cap not reached");
+        require(totalReceived >= softCapInETH, "Soft cap not reached");
         uint256 amount = address(this).balance;
         WETH.deposit{ value: amount }();
         WETH.transfer(lpToken, amount);
@@ -134,7 +150,7 @@ contract InitialLiquidityPool {
     // may call this method to withdraw their deposited balance
     function withdrawTokens() public {
         require(block.timestamp >= depositEndTime, "Deposits are still open");
-        require(totalReceived < softCap, "Cap was reached");
+        require(totalReceived < softCapInETH, "Cap was reached");
         uint256 amount = userAmounts[msg.sender].amount;
         userAmounts[msg.sender].amount = 0;
         msg.sender.transfer(amount);
