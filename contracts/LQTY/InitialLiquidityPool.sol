@@ -106,6 +106,7 @@ contract InitialLiquidityPool {
     function deposit() public payable {
         require(block.timestamp >= depositStartTime, "Not yet started");
         require(block.timestamp < depositEndTime, "Already finished");
+        require(msg.value > 0, "Cannot deposit 0");
 
         if (softCapInETH == 0) {
             // on the first deposit, use chainlink to determine
@@ -148,10 +149,11 @@ contract InitialLiquidityPool {
 
     // if the deposit period finishes and the soft cap was not reached, contributors
     // may call this method to withdraw their deposited balance
-    function withdrawTokens() public {
+    function withdraw() public {
         require(block.timestamp >= depositEndTime, "Deposits are still open");
         require(totalReceived < softCapInETH, "Cap was reached");
         uint256 amount = userAmounts[msg.sender].amount;
+        require(amount > 0, "Nothing to withdraw");
         userAmounts[msg.sender].amount = 0;
         msg.sender.transfer(amount);
     }
