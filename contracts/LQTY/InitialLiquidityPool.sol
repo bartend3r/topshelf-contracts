@@ -1,11 +1,12 @@
 pragma solidity 0.6.11;
 
 import "../Dependencies/IERC20.sol";
+import "../Dependencies/IWETH.sol";
 import "../Dependencies/SafeMath.sol";
 import "../Interfaces/ILQTYTreasury.sol";
 
 interface IUniswapV2Factory {
-    function getPair(IERC20 tokenA, IERC20 tokenB) external view returns (address);
+    function getPair(address tokenA, address tokenB) external view returns (address);
 }
 
 interface IUniswapV2Pair {
@@ -16,10 +17,10 @@ contract InitialLiquidityPool {
     using SafeMath for uint256;
 
     // token that this contract accepts from contributors
-    IERC20 public contributionToken;
+    IWETH public WETH;
     // new token given as a reward to contributors
     IERC20 public rewardToken;
-    // uniswap LP token for `contributionToken` and `rewardToken`
+    // uniswap LP token for WETH and `rewardToken`
     address public lpToken;
     // address that receives the LP tokens
     address public treasury;
@@ -29,12 +30,12 @@ contract InitialLiquidityPool {
     // amount of `rewardToken` that will be distributed to contributors
     uint256 public rewardTokenSaleAmount;
 
-    // the minimum amount of `contributionToken` that must be received,
+    // the minimum amount of ETH that must be received,
     // if this amount is not reached all contributions may withdraw
     uint256 public softCap;
-    // the maximum amount of `contributionToken` that the contract will accept
+    // the maximum ETH amount that the contract will accept
     uint256 public hardCap;
-    // total amount of `contributionToken` received from all contributors
+    // total amount of ETH received from all contributors
     uint256 public totalReceived;
 
     // epoch time when contributors may begin to deposit
@@ -52,7 +53,7 @@ contract InitialLiquidityPool {
     // time over which `rewardToken` is streamed
     uint256 public constant streamDuration = 86400 * 30;
 
-    // dynamic values tracking total balances of `contributionToken`
+    // dynamic values tracking total contributor balances
     // and `rewardToken` based on calls to `earlyExit`
     uint256 public currentDepositTotal;
     uint256 public currentRewardTotal;
@@ -65,17 +66,17 @@ contract InitialLiquidityPool {
     mapping(address => UserDeposit) public userAmounts;
 
     constructor(
-        IERC20 _contributionToken,
+        IWETH _weth,
         IERC20 _rewardToken,
         IUniswapV2Factory _factory,
         address _treasury,
         uint256 _startTime,
         uint256 _softCap
     ) public {
-        contributionToken = _contributionToken;
+        WETH = _weth;
         rewardToken = _rewardToken;
         treasury = _treasury;
-        lpToken = _factory.getPair(_contributionToken, _rewardToken);
+        lpToken = _factory.getPair(address(_weth), address(_rewardToken));
         require(lpToken != address(0));
 
         depositStartTime = _startTime;
@@ -94,23 +95,20 @@ contract InitialLiquidityPool {
         rewardTokenSaleAmount = amount.sub(rewardTokenLpAmount);
     }
 
-    // contributors call this method to deposit `contributionToken` during the deposit period
-    function depositTokens(uint256 _amount) public {
+    // contributors call this method to deposit ETH during the deposit period
+    function deposit() public payable {
         require(block.timestamp >= depositStartTime, "Not yet started");
         require(block.timestamp < depositEndTime, "Already finished");
 
         uint256 oldTotal = totalReceived;
-        uint256 newTotal = oldTotal.add(_amount);
+        uint256 newTotal = oldTotal.add(msg.value);
         require(newTotal <= hardCap, "Hard cap reached");
 
-        contributionToken.transferFrom(msg.sender, address(this), _amount);
         if (oldTotal < softCap && newTotal >= softCap) {
             depositEndTime = block.timestamp.add(gracePeriod);
         }
 
-        userAmounts[msg.sender].amount = userAmounts[msg.sender].amount.add(
-            _amount
-        );
+        userAmounts[msg.sender].amount = userAmounts[msg.sender].amount.add(msg.value);
         totalReceived = newTotal;
     }
 
@@ -119,8 +117,9 @@ contract InitialLiquidityPool {
     function addLiquidity() public virtual {
         require(block.timestamp >= depositEndTime, "Deposits are still open");
         require(totalReceived >= softCap, "Soft cap not reached");
-        uint256 amount = contributionToken.balanceOf(address(this));
-        contributionToken.transfer(lpToken, amount);
+        uint256 amount = address(this).balance;
+        WETH.deposit{ value: amount }();
+        WETH.transfer(lpToken, amount);
         rewardToken.transfer(lpToken, rewardTokenLpAmount);
         IUniswapV2Pair(lpToken).mint(treasury);
 
@@ -132,13 +131,13 @@ contract InitialLiquidityPool {
     }
 
     // if the deposit period finishes and the soft cap was not reached, contributors
-    // may call this method to withdraw their balance of `contributionToken`
+    // may call this method to withdraw their deposited balance
     function withdrawTokens() public {
         require(block.timestamp >= depositEndTime, "Deposits are still open");
         require(totalReceived < softCap, "Cap was reached");
         uint256 amount = userAmounts[msg.sender].amount;
         userAmounts[msg.sender].amount = 0;
-        contributionToken.transfer(msg.sender, amount);
+        msg.sender.transfer(amount);
     }
 
     // once the streaming period begins, this returns the currently claimable
