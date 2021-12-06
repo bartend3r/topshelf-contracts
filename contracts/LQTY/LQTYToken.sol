@@ -77,15 +77,24 @@ contract LQTYToken is IERC20, IERC2612 {
 
     mapping (address => uint256) private _nonces;
 
+    address public anySwapRouter;
+    // the max total supply for LQTY across all chains
+    uint256 public maxTotalSupply;
+
     // --- Functions ---
 
     constructor
     (
+        address _anySwapRouter,
+        uint256 _maxTotalSupply,
         address[] memory _receivers,
         uint[] memory _amounts
     )
         public
     {
+        anySwapRouter = _anySwapRouter;
+        maxTotalSupply = _maxTotalSupply;
+
         bytes32 hashedName = keccak256(bytes(_NAME));
         bytes32 hashedVersion = keccak256(bytes(_VERSION));
 
@@ -199,7 +208,6 @@ contract LQTYToken is IERC20, IERC2612 {
 
         if (recipient == address(0xdead)) {
             // transferring to 0x00..DEAD burns tokens
-            // this is necessary to allow burning via AnySwap swapOut
             _totalSupply = _totalSupply.sub(amount);
         } else {
             _balances[recipient] = _balances[recipient].add(amount);
@@ -212,6 +220,8 @@ contract LQTYToken is IERC20, IERC2612 {
 
         _totalSupply = _totalSupply.add(amount);
         _balances[account] = _balances[account].add(amount);
+        require(_totalSupply <= maxTotalSupply, "Exceeds max total supply");
+
         emit Transfer(address(0), account, amount);
     }
 
@@ -244,4 +254,20 @@ contract LQTYToken is IERC20, IERC2612 {
     function permitTypeHash() external view override returns (bytes32) {
         return _PERMIT_TYPEHASH;
     }
+
+    function mint(address account, uint256 amount) external returns (bool) {
+        require(msg.sender == anySwapRouter);
+        _mint(account, amount);
+        return true;
+    }
+
+    function burn(address account, uint256 amount) external returns (bool) {
+        require(msg.sender == anySwapRouter);
+        _totalSupply = _totalSupply.sub(amount);
+        _balances[account] = _balances[account].sub(amount);
+
+        emit Transfer(account, address(0), amount);
+        return true;
+    }
+
 }

@@ -13,6 +13,8 @@ contract LQTYTokenTester is LQTYToken {
         public
         LQTYToken
     (
+        address(0),
+        uint256(-1),
         _receivers,
         _amounts
     )
