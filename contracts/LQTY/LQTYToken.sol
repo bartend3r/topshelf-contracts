@@ -51,8 +51,8 @@ contract LQTYToken is IERC20, IERC2612 {
 
     // --- ERC20 Data ---
 
-    string constant internal _NAME = "LQTY";
-    string constant internal _SYMBOL = "LQTY";
+    string constant internal _NAME = "LIQR";
+    string constant internal _SYMBOL = "LIQR";
     string constant internal _VERSION = "1";
     uint8 constant internal  _DECIMALS = 18;
 
