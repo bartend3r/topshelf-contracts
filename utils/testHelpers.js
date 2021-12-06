@@ -686,12 +686,15 @@ class TestHelper {
 
     const totalDebt = await this.getOpenTroveTotalDebt(contracts, lusdAmount)
     const netDebt = await this.getActualDebtFromComposite(totalDebt, contracts)
-
+  
     if (ICR) {
       const price = await contracts.priceFeedTestnet.getPrice()
       collatAmount = ICR.mul(totalDebt).div(price)
     }
-    const tx = await contracts.borrowerOperations.openTrove(extraParams.from, maxFeePercentage, collatAmount, lusdAmount, upperHint, lowerHint, extraParams)
+    const troveFor = extraParams.troveFor ? extraParams.troveFor:extraParams.from;
+    extraParams.troveFor ? delete extraParams.troveFor:false;
+    // console.log('lusdAmount', lusdAmount.toString())
+    const tx = await contracts.borrowerOperations.openTrove(troveFor, maxFeePercentage, collatAmount, lusdAmount, upperHint, lowerHint, extraParams)
 
     return {
       lusdAmount,
