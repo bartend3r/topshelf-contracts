@@ -37,12 +37,17 @@ contract InitialLiquidityPool {
     // the ETH equivalent is calculated when deposits open
     uint256 public constant softCapInUSD = 1000000;
     uint256 public constant hardCapInUSD = 5000000;
+    uint256 public immutable initialContributionCapInUSD;
 
     // the minimum amount of ETH that must be received,
     // if this amount is not reached all contributions may withdraw
     uint256 public softCapInETH;
     // the maximum ETH amount that the contract will accept
     uint256 public hardCapInETH;
+    // the maximum ETH amount that each contributor can send during the first hour
+    // this amount doubles each hour, until hour 4 at which point the per-contributor
+    // limit is removed altogether
+    uint256 public initialContributionCapInETH;
 
     // total amount of ETH received from all contributors
     uint256 public totalReceived;
@@ -80,7 +85,8 @@ contract InitialLiquidityPool {
         AggregatorV3Interface _oracle,
         IUniswapV2Factory _factory,
         address _treasury,
-        uint256 _startTime
+        uint256 _startTime,
+        uint256 _initialCap
     ) public {
         WETH = _weth;
         rewardToken = _rewardToken;
@@ -91,6 +97,7 @@ contract InitialLiquidityPool {
 
         depositStartTime = _startTime;
         depositEndTime = _startTime.add(86400);
+        initialContributionCapInUSD = _initialCap;
     }
 
     // `rewardToken` should be transferred into the contract prior to calling this method
@@ -115,17 +122,28 @@ contract InitialLiquidityPool {
             uint256 decimals = oracle.decimals();
             softCapInETH = softCapInUSD.mul(1e18).mul(10**decimals).div(answer);
             hardCapInETH = hardCapInUSD.mul(1e18).mul(10**decimals).div(answer);
+            initialContributionCapInETH = initialContributionCapInUSD.mul(1e18).mul(10**decimals).div(answer);
         }
 
+        // check contributor cap and update user contribution amount
+        uint256 userContribution = userAmounts[msg.sender].amount.add(msg.value);
+        if (block.timestamp < depositStartTime.add(14400)) {
+            uint256 cap = initialContributionCapInETH;
+            uint256 multiplier = block.timestamp.sub(depositStartTime).div(3600).mul(2);
+            if (multiplier != 0) {
+                cap = cap.mul(multiplier);
+            }
+            require(userContribution <= cap, "Exceeds contributor cap");
+        }
+        userAmounts[msg.sender].amount = userContribution;
+
+        // check soft/hard cap and update total contribution amount
         uint256 oldTotal = totalReceived;
         uint256 newTotal = oldTotal.add(msg.value);
         require(newTotal <= hardCapInETH, "Hard cap reached");
-
         if (oldTotal < softCapInETH && newTotal >= softCapInETH) {
             depositEndTime = block.timestamp.add(gracePeriod);
         }
-
-        userAmounts[msg.sender].amount = userAmounts[msg.sender].amount.add(msg.value);
         totalReceived = newTotal;
     }
 
