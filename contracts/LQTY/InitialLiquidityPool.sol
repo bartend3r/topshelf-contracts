@@ -28,6 +28,8 @@ contract InitialLiquidityPool {
     // chainlink price oracle for ETH/USD
     AggregatorV3Interface public oracle;
 
+    bytes32 public immutable whitelistRoot;
+
     // amount of `rewardToken` that will be added as liquidity
     uint256 public rewardTokenLpAmount;
     // amount of `rewardToken` that will be distributed to contributors
@@ -86,7 +88,8 @@ contract InitialLiquidityPool {
         IUniswapV2Factory _factory,
         address _treasury,
         uint256 _startTime,
-        uint256 _initialCap
+        uint256 _initialCap,
+        bytes32 _whitelistRoot
     ) public {
         WETH = _weth;
         rewardToken = _rewardToken;
@@ -98,6 +101,7 @@ contract InitialLiquidityPool {
         depositStartTime = _startTime;
         depositEndTime = _startTime.add(86400);
         initialContributionCapInUSD = _initialCap;
+        whitelistRoot = _whitelistRoot;
     }
 
     // `rewardToken` should be transferred into the contract prior to calling this method
@@ -110,10 +114,11 @@ contract InitialLiquidityPool {
     }
 
     // contributors call this method to deposit ETH during the deposit period
-    function deposit() public payable {
+    function deposit(bytes32[] calldata _claimProof) external payable {
         require(block.timestamp >= depositStartTime, "Not yet started");
         require(block.timestamp < depositEndTime, "Already finished");
         require(msg.value > 0, "Cannot deposit 0");
+        verify(_claimProof);
 
         if (softCapInETH == 0) {
             // on the first deposit, use chainlink to determine
@@ -145,6 +150,25 @@ contract InitialLiquidityPool {
             depositEndTime = block.timestamp.add(gracePeriod);
         }
         totalReceived = newTotal;
+    }
+
+    function verify(bytes32[] calldata proof) internal view {
+        bytes32 computedHash = keccak256(abi.encodePacked(msg.sender));
+
+        for (uint256 i = 0; i < proof.length; i++) {
+            bytes32 proofElement = proof[i];
+
+            if (computedHash <= proofElement) {
+                // Hash(current computed hash + current element of the proof)
+                computedHash = keccak256(abi.encodePacked(computedHash, proofElement));
+            } else {
+                // Hash(current element of the proof + current computed hash)
+                computedHash = keccak256(abi.encodePacked(proofElement, computedHash));
+            }
+        }
+
+        // Check if the computed hash (root) is equal to the provided root
+        require(computedHash == whitelistRoot, "Invalid claim proof");
     }
 
     // after the deposit period is finished and the soft cap has been reached,
