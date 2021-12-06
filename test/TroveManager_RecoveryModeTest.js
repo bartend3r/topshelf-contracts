@@ -129,7 +129,7 @@ contract('TroveManager - in Recovery Mode', async accounts => {
     const recoveryMode_Before = await th.checkRecoveryMode(contracts);
     assert.isTrue(recoveryMode_Before)
 
-    await borrowerOperations.addColl(1, alice, alice, { from: alice })
+    await borrowerOperations.addColl(alice, 1, alice, alice, { from: alice })
 
     const recoveryMode_After = await th.checkRecoveryMode(contracts);
     assert.isTrue(recoveryMode_After)
@@ -144,7 +144,7 @@ contract('TroveManager - in Recovery Mode', async accounts => {
     const recoveryMode_Before = await th.checkRecoveryMode(contracts);
     assert.isFalse(recoveryMode_Before)
 
-    await borrowerOperations.withdrawColl(_1_Ether, alice, alice, { from: alice })
+    await borrowerOperations.withdrawColl(alice, _1_Ether, alice, alice, { from: alice })
 
     const recoveryMode_After = await th.checkRecoveryMode(contracts);
     assert.isFalse(recoveryMode_After)
@@ -165,7 +165,7 @@ contract('TroveManager - in Recovery Mode', async accounts => {
     const recoveryMode_Before = await th.checkRecoveryMode(contracts);
     assert.isTrue(recoveryMode_Before)
 
-    await borrowerOperations.addColl(A_coll, alice, alice, { from: alice })
+    await borrowerOperations.addColl(alice, A_coll, alice, alice, { from: alice })
 
     const recoveryMode_After = await th.checkRecoveryMode(contracts);
     assert.isFalse(recoveryMode_After)
@@ -1177,7 +1177,7 @@ contract('TroveManager - in Recovery Mode', async accounts => {
 
     // Remove Bob from system to test Carol's trove: price rises, Bob closes trove, price drops to 100 again
     await priceFeed.setPrice(dec(200, 18))
-    await borrowerOperations.closeTrove({ from: bob })
+    await borrowerOperations.closeTrove(bob, { from: bob })
     await priceFeed.setPrice(dec(100, 18))
     assert.isFalse(await sortedTroves.contains(bob))
 
@@ -3255,7 +3255,7 @@ contract('TroveManager - in Recovery Mode', async accounts => {
     // to compensate borrowing fee
     await lusdToken.transfer(alice, A_totalDebt, { from: whale })
     // Alice closes trove
-    await borrowerOperations.closeTrove({ from: alice })
+    await borrowerOperations.closeTrove(alice, { from: alice })
 
     // price drops to 1ETH:85LUSD, reducing TCR below 150%
     await priceFeed.setPrice('85000000000000000000')

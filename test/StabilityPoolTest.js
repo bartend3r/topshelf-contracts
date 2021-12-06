@@ -1804,7 +1804,7 @@ contract('StabilityPool', async accounts => {
       await openTrove({ extraLUSDAmount: toBN(dec(100000, 18)), ICR: toBN(dec(10, 18)), extraParams: { from: whale } })
 
       // 1 defaulter opens trove
-      await borrowerOperations.openTrove(th._100pct, dec(100, 'ether'), await getOpenTroveLUSDAmount(dec(10000, 18)), defaulter_1, defaulter_1, { from: defaulter_1 })
+      await borrowerOperations.openTrove(defaulter_1, th._100pct, dec(100, 'ether'), await getOpenTroveLUSDAmount(dec(10000, 18)), defaulter_1, defaulter_1, { from: defaulter_1 })
 
       const defaulterDebt = (await troveManager.getEntireDebtAndColl(defaulter_1))[0]
 
@@ -1831,7 +1831,7 @@ contract('StabilityPool', async accounts => {
       await priceFeed.setPrice(dec(200, 18))
 
       // Bob issues a further 5000 LUSD from his trove
-      await borrowerOperations.withdrawLUSD(th._100pct, dec(5000, 18), bob, bob, { from: bob })
+      await borrowerOperations.withdrawLUSD(bob, th._100pct, dec(5000, 18), bob, bob, { from: bob })
 
       // Expect Alice's LUSD balance increase be very close to 8333.3333333333333333 LUSD
       await stabilityPool.withdrawFromSP(dec(10000, 18), { from: alice })
@@ -2279,7 +2279,7 @@ contract('StabilityPool', async accounts => {
       await openTrove({ extraLUSDAmount: toBN(dec(20000, 18)), ICR: toBN(dec(4, 18)), extraParams: { from: bob } })
       await openTrove({ extraLUSDAmount: toBN(dec(30000, 18)), ICR: toBN(dec(4, 18)), extraParams: { from: carol } })
 
-      await borrowerOperations.openTrove(th._100pct, dec(100, 'ether'), await getOpenTroveLUSDAmount(dec(10000, 18)), defaulter_1, defaulter_1, { from: defaulter_1 })
+      await borrowerOperations.openTrove(defaulter_1, th._100pct, dec(100, 'ether'), await getOpenTroveLUSDAmount(dec(10000, 18)), defaulter_1, defaulter_1, { from: defaulter_1 })
 
       // A, B, C provides 10000, 5000, 3000 LUSD to SP
       await stabilityPool.provideToSP(dec(10000, 18), frontEnd_1, { from: alice })

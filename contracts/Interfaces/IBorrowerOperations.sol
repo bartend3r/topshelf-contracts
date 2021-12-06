@@ -42,21 +42,21 @@ interface IBorrowerOperations {
         address _collateralStakingAddress
     ) external;
 
-    function openTrove(uint _maxFee, uint _collateralAmount, uint _LUSDAmount, address _upperHint, address _lowerHint) external;
+    function openTrove(address _account, uint _maxFee, uint _collateralAmount, uint _LUSDAmount, address _upperHint, address _lowerHint) external;
 
-    function addColl(uint _collateralAmount, address _upperHint, address _lowerHint) external;
+    function addColl(address _account, uint _collateralAmount, address _upperHint, address _lowerHint) external;
 
     function moveETHGainToTrove(uint _collateralAmount, address _user, address _upperHint, address _lowerHint) external;
 
-    function withdrawColl(uint _amount, address _upperHint, address _lowerHint) external;
+    function withdrawColl(address _account, uint _amount, address _upperHint, address _lowerHint) external;
 
-    function withdrawLUSD(uint _maxFee, uint _amount, address _upperHint, address _lowerHint) external;
+    function withdrawLUSD(address _account, uint _maxFee, uint _amount, address _upperHint, address _lowerHint) external;
 
-    function repayLUSD(uint _amount, address _upperHint, address _lowerHint) external;
+    function repayLUSD(address _account, uint _amount, address _upperHint, address _lowerHint) external;
 
-    function closeTrove() external;
+    function closeTrove(address _account) external;
 
-    function adjustTrove(uint _maxFee, uint _collDeposit, uint _collWithdrawal, uint _debtChange, bool isDebtIncrease, address _upperHint, address _lowerHint) external;
+    function adjustTrove(address _account, uint _maxFee, uint _collDeposit, uint _collWithdrawal, uint _debtChange, bool isDebtIncrease, address _upperHint, address _lowerHint) external;
 
     function claimCollateral() external;
 
