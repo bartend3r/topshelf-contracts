@@ -1,11 +1,13 @@
 pragma solidity 0.6.11;
 
+import "../Dependencies/AggregatorV3Interface.sol";
 import "../Dependencies/IERC20.sol";
+import "../Dependencies/IWETH.sol";
 import "../Dependencies/SafeMath.sol";
 import "../Interfaces/ILQTYTreasury.sol";
 
 interface IUniswapV2Factory {
-    function getPair(IERC20 tokenA, IERC20 tokenB) external view returns (address);
+    function getPair(address tokenA, address tokenB) external view returns (address);
 }
 
 interface IUniswapV2Pair {
@@ -16,25 +18,40 @@ contract InitialLiquidityPool {
     using SafeMath for uint256;
 
     // token that this contract accepts from contributors
-    IERC20 public contributionToken;
+    IWETH public WETH;
     // new token given as a reward to contributors
     IERC20 public rewardToken;
-    // uniswap LP token for `contributionToken` and `rewardToken`
+    // uniswap LP token for WETH and `rewardToken`
     address public lpToken;
     // address that receives the LP tokens
     address public treasury;
+    // chainlink price oracle for ETH/USD
+    AggregatorV3Interface public oracle;
+
+    bytes32 public immutable whitelistRoot;
 
     // amount of `rewardToken` that will be added as liquidity
     uint256 public rewardTokenLpAmount;
     // amount of `rewardToken` that will be distributed to contributors
     uint256 public rewardTokenSaleAmount;
 
-    // the minimum amount of `contributionToken` that must be received,
+    // hardcoded soft and hard caps in USD
+    // the ETH equivalent is calculated when deposits open
+    uint256 public constant softCapInUSD = 1000000;
+    uint256 public constant hardCapInUSD = 5000000;
+    uint256 public immutable initialContributionCapInUSD;
+
+    // the minimum amount of ETH that must be received,
     // if this amount is not reached all contributions may withdraw
-    uint256 public softCap;
-    // the maximum amount of `contributionToken` that the contract will accept
-    uint256 public hardCap;
-    // total amount of `contributionToken` received from all contributors
+    uint256 public softCapInETH;
+    // the maximum ETH amount that the contract will accept
+    uint256 public hardCapInETH;
+    // the maximum ETH amount that each contributor can send during the first hour
+    // this amount doubles each hour, until hour 4 at which point the per-contributor
+    // limit is removed altogether
+    uint256 public initialContributionCapInETH;
+
+    // total amount of ETH received from all contributors
     uint256 public totalReceived;
 
     // epoch time when contributors may begin to deposit
@@ -52,7 +69,7 @@ contract InitialLiquidityPool {
     // time over which `rewardToken` is streamed
     uint256 public constant streamDuration = 86400 * 30;
 
-    // dynamic values tracking total balances of `contributionToken`
+    // dynamic values tracking total contributor balances
     // and `rewardToken` based on calls to `earlyExit`
     uint256 public currentDepositTotal;
     uint256 public currentRewardTotal;
@@ -65,24 +82,26 @@ contract InitialLiquidityPool {
     mapping(address => UserDeposit) public userAmounts;
 
     constructor(
-        IERC20 _contributionToken,
+        IWETH _weth,
         IERC20 _rewardToken,
+        AggregatorV3Interface _oracle,
         IUniswapV2Factory _factory,
         address _treasury,
         uint256 _startTime,
-        uint256 _softCap
+        uint256 _initialCap,
+        bytes32 _whitelistRoot
     ) public {
-        contributionToken = _contributionToken;
+        WETH = _weth;
         rewardToken = _rewardToken;
+        oracle = _oracle;
         treasury = _treasury;
-        lpToken = _factory.getPair(_contributionToken, _rewardToken);
+        lpToken = _factory.getPair(address(_weth), address(_rewardToken));
         require(lpToken != address(0));
 
         depositStartTime = _startTime;
         depositEndTime = _startTime.add(86400);
-
-        softCap = _softCap;
-        hardCap = _softCap.mul(5);
+        initialContributionCapInUSD = _initialCap;
+        whitelistRoot = _whitelistRoot;
     }
 
     // `rewardToken` should be transferred into the contract prior to calling this method
@@ -94,33 +113,75 @@ contract InitialLiquidityPool {
         rewardTokenSaleAmount = amount.sub(rewardTokenLpAmount);
     }
 
-    // contributors call this method to deposit `contributionToken` during the deposit period
-    function depositTokens(uint256 _amount) public {
+    function currentContributorCapInETH() public view returns (uint256) {
+        if (block.timestamp < depositStartTime.add(14400)) {
+            uint256 cap = initialContributionCapInETH;
+            uint256 exp = block.timestamp.sub(depositStartTime).div(3600);
+            return cap.mul(2 ** exp);
+        } else {
+            return hardCapInETH;
+        }
+    }
+
+    // contributors call this method to deposit ETH during the deposit period
+    function deposit(bytes32[] calldata _claimProof) external payable {
         require(block.timestamp >= depositStartTime, "Not yet started");
         require(block.timestamp < depositEndTime, "Already finished");
+        require(msg.value > 0, "Cannot deposit 0");
+        verify(_claimProof);
 
-        uint256 oldTotal = totalReceived;
-        uint256 newTotal = oldTotal.add(_amount);
-        require(newTotal <= hardCap, "Hard cap reached");
-
-        contributionToken.transferFrom(msg.sender, address(this), _amount);
-        if (oldTotal < softCap && newTotal >= softCap) {
-            depositEndTime = block.timestamp.add(gracePeriod);
+        if (softCapInETH == 0) {
+            // on the first deposit, use chainlink to determine
+            // the ETH equivalant for the soft and hard caps
+            uint256 answer = uint256(oracle.latestAnswer());
+            uint256 decimals = oracle.decimals();
+            softCapInETH = softCapInUSD.mul(1e18).mul(10**decimals).div(answer);
+            hardCapInETH = hardCapInUSD.mul(1e18).mul(10**decimals).div(answer);
+            initialContributionCapInETH = initialContributionCapInUSD.mul(1e18).mul(10**decimals).div(answer);
         }
 
-        userAmounts[msg.sender].amount = userAmounts[msg.sender].amount.add(
-            _amount
-        );
+        // check contributor cap and update user contribution amount
+        uint256 userContribution = userAmounts[msg.sender].amount.add(msg.value);
+        require(userContribution <= currentContributorCapInETH(), "Exceeds contributor cap");
+        userAmounts[msg.sender].amount = userContribution;
+
+        // check soft/hard cap and update total contribution amount
+        uint256 oldTotal = totalReceived;
+        uint256 newTotal = oldTotal.add(msg.value);
+        require(newTotal <= hardCapInETH, "Hard cap reached");
+        if (oldTotal < softCapInETH && newTotal >= softCapInETH) {
+            depositEndTime = block.timestamp.add(gracePeriod);
+        }
         totalReceived = newTotal;
+    }
+
+    function verify(bytes32[] calldata proof) internal view {
+        bytes32 computedHash = keccak256(abi.encodePacked(msg.sender));
+
+        for (uint256 i = 0; i < proof.length; i++) {
+            bytes32 proofElement = proof[i];
+
+            if (computedHash <= proofElement) {
+                // Hash(current computed hash + current element of the proof)
+                computedHash = keccak256(abi.encodePacked(computedHash, proofElement));
+            } else {
+                // Hash(current element of the proof + current computed hash)
+                computedHash = keccak256(abi.encodePacked(proofElement, computedHash));
+            }
+        }
+
+        // Check if the computed hash (root) is equal to the provided root
+        require(computedHash == whitelistRoot, "Invalid claim proof");
     }
 
     // after the deposit period is finished and the soft cap has been reached,
     // call this method to add liquidity and begin reward streaming for contributors
     function addLiquidity() public virtual {
         require(block.timestamp >= depositEndTime, "Deposits are still open");
-        require(totalReceived >= softCap, "Soft cap not reached");
-        uint256 amount = contributionToken.balanceOf(address(this));
-        contributionToken.transfer(lpToken, amount);
+        require(totalReceived >= softCapInETH, "Soft cap not reached");
+        uint256 amount = address(this).balance;
+        WETH.deposit{ value: amount }();
+        WETH.transfer(lpToken, amount);
         rewardToken.transfer(lpToken, rewardTokenLpAmount);
         IUniswapV2Pair(lpToken).mint(treasury);
 
@@ -132,13 +193,14 @@ contract InitialLiquidityPool {
     }
 
     // if the deposit period finishes and the soft cap was not reached, contributors
-    // may call this method to withdraw their balance of `contributionToken`
-    function withdrawTokens() public {
+    // may call this method to withdraw their deposited balance
+    function withdraw() public {
         require(block.timestamp >= depositEndTime, "Deposits are still open");
-        require(totalReceived < softCap, "Cap was reached");
+        require(totalReceived < softCapInETH, "Cap was reached");
         uint256 amount = userAmounts[msg.sender].amount;
+        require(amount > 0, "Nothing to withdraw");
         userAmounts[msg.sender].amount = 0;
-        contributionToken.transfer(msg.sender, amount);
+        msg.sender.transfer(amount);
     }
 
     // once the streaming period begins, this returns the currently claimable
