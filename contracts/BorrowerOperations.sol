@@ -228,8 +228,8 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, DelegatedOps
         emit TroveCreated(_account, vars.arrayIndex);
 
         // Move the ether to the Active Pool, and mint the LUSDAmount to the caller
-        _activePoolAddColl(contractsCache.activePool, _collateralAmount, _account);
-        _withdrawLUSD(contractsCache.activePool, contractsCache.lusdToken, _account, _LUSDAmount, vars.netDebt);
+        _activePoolAddColl(contractsCache.activePool, _collateralAmount);
+        _withdrawLUSD(contractsCache.activePool, contractsCache.lusdToken, msg.sender, _LUSDAmount, vars.netDebt);
         // Move the LUSD gas compensation to the Gas Pool
         _withdrawLUSD(contractsCache.activePool, contractsCache.lusdToken, gasPoolAddress, LUSD_GAS_COMPENSATION, LUSD_GAS_COMPENSATION);
 
@@ -353,8 +353,9 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, DelegatedOps
         require(_collDeposit != 0 || _collWithdrawal != 0 || _LUSDChange != 0, "BorrowerOps: There must be either a collateral change or a debt change");
         _requireTroveisActive(contractsCache.troveManager, _borrower);
 
-        // Confirm the operation is either a borrower adjusting their own trove, or a pure ETH transfer from the Stability Pool to a trove
-        assert(_caller == _borrower || (_caller == stabilityPoolAddress && _collDeposit > 0 && _LUSDChange == 0));
+        // Confirm the operation is either a borrower adjusting their own trove, a delegator adjusting a delegatee's trove, 
+        // or a pure ETH transfer from the Stability Pool to a trove
+        require(_caller == _borrower || isApprovedDelegate[_borrower][_caller] || (_caller == stabilityPoolAddress && _collDeposit > 0 && _LUSDChange == 0), 'callerOrDelegated');
 
         contractsCache.troveManager.applyPendingRewards(_borrower);
 
@@ -528,15 +529,15 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, DelegatedOps
         }
 
         if (_isCollIncrease) {
-            _activePoolAddColl(_activePool, _collChange, _borrower);
+            _activePoolAddColl(_activePool, _collChange);
         } else {
             _activePool.sendCollateral(_borrower, _collChange, false);
         }
     }
 
     // Send ETH to Active Pool and increase its recorded ETH balance
-    function _activePoolAddColl(IActivePool _activePool, uint _amount, address _account) internal {
-        require(collateralToken.transferFrom(_account, address(_activePool), _amount), "BorrowerOps: Sending ETH to ActivePool failed");
+    function _activePoolAddColl(IActivePool _activePool, uint _amount) internal {
+        require(collateralToken.transferFrom(msg.sender, address(_activePool), _amount), "BorrowerOps: Sending ETH to ActivePool failed");
         _activePool.notifyReceiveCollateral(_amount);
     }
 
