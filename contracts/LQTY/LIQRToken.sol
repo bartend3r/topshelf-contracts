@@ -5,48 +5,9 @@ pragma solidity 0.6.11;
 import "../Dependencies/SafeMath.sol";
 import "../Dependencies/IERC20.sol";
 import "../Dependencies/IERC2612.sol";
-import "../Dependencies/console.sol";
 
-/*
-* Based upon OpenZeppelin's ERC20 contract:
-* https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/ERC20.sol
-*
-* and their EIP2612 (ERC20Permit / ERC712) functionality:
-* https://github.com/OpenZeppelin/openzeppelin-contracts/blob/53516bc555a454862470e7860a9b5254db4d00f5/contracts/token/ERC20/ERC20Permit.sol
-*
-*
-*  --- Functionality added specific to the LQTYToken ---
-*
-* 1) Transfer protection: blacklist of addresses that are invalid recipients (i.e. core Liquity contracts) in external
-* transfer() and transferFrom() calls. The purpose is to protect users from losing tokens by mistakenly sending LQTY directly to a Liquity
-* core contract, when they should rather call the right function.
-*
-* 2) sendToLQTYStaking(): callable only by Liquity core contracts, which move LQTY tokens from user -> LQTYStaking contract.
-*
-* 3) Supply hard-capped at 100 million
-*
-* 4) CommunityIssuance and LockupContractFactory addresses are set at deployment
-*
-* 5) The bug bounties / hackathons allocation of 2 million tokens is minted at deployment to an EOA
 
-* 6) 32 million tokens are minted at deployment to the CommunityIssuance contract
-*
-* 7) The LP rewards allocation of (1 + 1/3) million tokens is minted at deployent to a Staking contract
-*
-* 8) (64 + 2/3) million tokens are minted at deployment to the Liquity multisig
-*
-* 9) Until one year from deployment:
-* -Liquity multisig may only transfer() tokens to LockupContracts that have been deployed via & registered in the
-*  LockupContractFactory
-* -approve(), increaseAllowance(), decreaseAllowance() revert when called by the multisig
-* -transferFrom() reverts when the multisig is the sender
-* -sendToLQTYStaking() reverts when the multisig is the sender, blocking the multisig from staking its LQTY.
-*
-* After one year has passed since deployment of the LQTYToken, the restrictions on multisig operations are lifted
-* and the multisig has the same rights as any other address.
-*/
-
-contract LQTYToken is IERC20, IERC2612 {
+contract LIQRToken is IERC20, IERC2612 {
     using SafeMath for uint256;
 
     // --- ERC20 Data ---
