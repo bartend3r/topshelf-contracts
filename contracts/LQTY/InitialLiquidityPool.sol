@@ -113,6 +113,16 @@ contract InitialLiquidityPool {
         rewardTokenSaleAmount = amount.sub(rewardTokenLpAmount);
     }
 
+    function currentContributorCapInETH() public view returns (uint256) {
+        if (block.timestamp < depositStartTime.add(14400)) {
+            uint256 cap = initialContributionCapInETH;
+            uint256 exp = block.timestamp.sub(depositStartTime).div(3600);
+            return cap.mul(2 ** exp);
+        } else {
+            return hardCapInETH;
+        }
+    }
+
     // contributors call this method to deposit ETH during the deposit period
     function deposit(bytes32[] calldata _claimProof) external payable {
         require(block.timestamp >= depositStartTime, "Not yet started");
@@ -132,14 +142,7 @@ contract InitialLiquidityPool {
 
         // check contributor cap and update user contribution amount
         uint256 userContribution = userAmounts[msg.sender].amount.add(msg.value);
-        if (block.timestamp < depositStartTime.add(14400)) {
-            uint256 cap = initialContributionCapInETH;
-            uint256 multiplier = block.timestamp.sub(depositStartTime).div(3600).mul(2);
-            if (multiplier != 0) {
-                cap = cap.mul(multiplier);
-            }
-            require(userContribution <= cap, "Exceeds contributor cap");
-        }
+        require(userContribution <= currentContributorCapInETH(), "Exceeds contributor cap");
         userAmounts[msg.sender].amount = userContribution;
 
         // check soft/hard cap and update total contribution amount
