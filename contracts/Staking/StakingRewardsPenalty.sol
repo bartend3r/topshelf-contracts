@@ -149,17 +149,14 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
 
     function addPenaltyAmount(uint256 _amount) internal {
         uint256 idx = block.timestamp.sub(startTime).div(604800);
+        uint amount;
+
         if (penaltyIndex < idx) {
-            uint amount;
             while (penaltyIndex < idx) {
                 amount = amount.add(penaltyAmounts[penaltyIndex]);
                 penaltyIndex++;
             }
             if (amount > 0) {
-                // transfer 50% of penalty tokens to treasury
-                amount = amount.div(2);
-                stakingToken.transfer(treasury, amount);
-
                 // withdraw LP position
                 stakingToken.transfer(address(stakingToken), amount);
                 stakingToken.burn(address(this));
@@ -178,9 +175,13 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
                 IMultiRewards(penaltyReceiver).notifyRewardAmount(address(wantToken), amount);
             }
         }
-        // hold penalty tokens for 8 weeks
+        // transfer 50% of penalty tokens to treasury
+        amount = _amount.div(2);
+        stakingToken.transfer(treasury, amount);
+
+        // hold remaining penalty tokens for 8 weeks
         idx = idx.add(8);
-        penaltyAmounts[idx] = penaltyAmounts[idx].add(_amount);
+        penaltyAmounts[idx] = penaltyAmounts[idx].add(_amount.sub(amount));
     }
 
     function stake(uint256 amount) external nonReentrant notPaused updateReward(msg.sender) {
