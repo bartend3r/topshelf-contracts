@@ -132,17 +132,50 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
         return rewardRate.mul(rewardsDuration);
     }
 
-    // fee is given as an integer out of 10000
-    // deposit fee starts at 2% and reduces by 0.5% every 13 weeks
+    // current deposit fee percent, given as an integer out of 10000
+    // the deposit fee is fixed, starting at 2% and reducing by 0.5%
+    // every 13 weeks until becoming 0 at one year after launch
     function depositFee() public view returns (uint256) {
         uint256 timeSinceStart = block.timestamp.sub(startTime);
         if (timeSinceStart >= 31449600) return 0;
         return uint256(200).sub(timeSinceStart.div(7862400).mul(50));
     }
 
-    function depositFeeOnAmount(uint256 _amount) public view returns (uint256) {
+    // exact fee amount paid when depositing `amount`
+    function depositFeeOnAmount(uint256 amount) public view returns (uint256) {
         uint256 fee = depositFee();
-        return _amount.mul(fee).div(10000);
+        return amount.mul(fee).div(10000);
+    }
+
+    // exact fee amount paid when `account` withdraws `amount`
+    // the withdrawal fee is variable, starting at 8% and reducing by 1% for each week that
+    // the funds have been deposited. withdrawals are always made starting from the oldest
+    // deposit, in order to minimize the fee paid.
+    function withdrawFeeOnAmount(address account, uint256 amount) public view returns (uint256 feeAmount) {
+        UserBalance storage user = userBalances[account];
+        require(user.total >= amount, "Amount exceeds user deposit");
+
+        uint256 remaining = amount;
+        uint256 timestamp = block.timestamp / 86400 * 86400;
+        for (uint256 i = user.depositIndex; ; i++) {
+            Deposit storage dep = user.deposits[i];
+            uint256 weeklyAmount = dep.amount;
+            if (weeklyAmount > remaining) {
+                weeklyAmount = remaining;
+            }
+            uint256 weeksSinceDeposit = timestamp.sub(dep.timestamp).div(604800);
+            if (weeksSinceDeposit < 8) {
+                // for balances deposited less than 8 weeks ago, a withdrawal
+                // penalty is applied starting at 8% and decreasing by 1% every week
+                uint penaltyMultiplier = 8 - weeksSinceDeposit;
+                feeAmount = feeAmount.add(weeklyAmount.mul(penaltyMultiplier).div(100));
+            }
+            remaining = remaining.sub(weeklyAmount);
+            if (remaining == 0) {
+                return feeAmount;
+            }
+        }
+        revert();
     }
 
     /* ========== MUTATIVE FUNCTIONS ========== */
@@ -184,6 +217,9 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
         penaltyAmounts[idx] = penaltyAmounts[idx].add(_amount.sub(amount));
     }
 
+    // `amount` is the total amount to deposit, inclusive of any fee amount to be paid
+    // the final deposited balance ay be up to 2% less than `amount` depending upon the
+    // current deposit fee
     function stake(uint256 amount) external nonReentrant notPaused updateReward(msg.sender) {
         require(amount > 0, "Cannot stake 0");
         stakingToken.transferFrom(msg.sender, address(this), amount);
