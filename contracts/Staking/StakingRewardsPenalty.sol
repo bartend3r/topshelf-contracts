@@ -132,6 +132,19 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
         return rewardRate.mul(rewardsDuration);
     }
 
+    // fee is given as an integer out of 10000
+    // deposit fee starts at 2% and reduces by 0.5% every 13 weeks
+    function depositFee() public view returns (uint256) {
+        uint256 timeSinceStart = block.timestamp.sub(startTime);
+        if (timeSinceStart >= 31449600) return 0;
+        return uint256(200).sub(timeSinceStart.div(7862400).mul(50));
+    }
+
+    function depositFeeOnAmount(uint256 _amount) public view returns (uint256) {
+        uint256 fee = depositFee();
+        return _amount.mul(fee).div(10000);
+    }
+
     /* ========== MUTATIVE FUNCTIONS ========== */
 
     function addPenaltyAmount(uint256 _amount) internal {
@@ -174,10 +187,12 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
         require(amount > 0, "Cannot stake 0");
         stakingToken.transferFrom(msg.sender, address(this), amount);
 
-        // 2% penalty is applied upon deposit
-        uint256 penaltyAmount = amount.div(50);
-        addPenaltyAmount(penaltyAmount);
-        amount = amount.sub(penaltyAmount);
+        // apply deposit fee, if any
+        uint256 penaltyAmount = depositFeeOnAmount(amount);
+        if (penaltyAmount > 0) {
+            addPenaltyAmount(penaltyAmount);
+            amount = amount.sub(penaltyAmount);
+        }
 
         _totalSupply = _totalSupply.add(amount);
         UserBalance storage user = userBalances[msg.sender];
