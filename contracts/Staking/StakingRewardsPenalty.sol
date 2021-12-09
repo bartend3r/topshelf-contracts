@@ -47,13 +47,13 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
     uint256 public constant rewardsUpdateFrequency = 3600;
 
     // each index is the total amount collected over 1 week
-    uint256[65535] penaltyAmounts;
+    uint256[65535] feeAmounts;
     // the current week is calculated from `block.timestamp - startTime`
     uint256 public startTime;
-    // active index for `penaltyAmounts`
-    uint256 public penaltyIndex;
+    // active index for `feeAmounts`
+    uint256 public feeIndex;
     // address of the contract for single-sided staking of `wantToken`
-    address public penaltyReceiver;
+    address public feeReceiver;
     // address of the CommunityIssuance contract that releases rewards to this contract
     ICommunityIssuance public rewardIssuer;
 
@@ -72,7 +72,7 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
         IUniswapV2Pair _stakingToken,
         IERC20 _wantToken,
         address _burnToken,
-        address _penaltyReceiver,
+        address _feeReceiver,
         ICommunityIssuance _rewardIssuer,
         address _treasury,
         bool _isRootChain
@@ -84,7 +84,7 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
         wantToken = _wantToken;
         burnToken = _burnToken;
 
-        penaltyReceiver = _penaltyReceiver;
+        feeReceiver = _feeReceiver;
         rewardIssuer = _rewardIssuer;
         treasury = _treasury;
         startTime = block.timestamp;
@@ -166,9 +166,9 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
             uint256 weeksSinceDeposit = timestamp.sub(dep.timestamp).div(604800);
             if (weeksSinceDeposit < 8) {
                 // for balances deposited less than 8 weeks ago, a withdrawal
-                // penalty is applied starting at 8% and decreasing by 1% every week
-                uint penaltyMultiplier = 8 - weeksSinceDeposit;
-                feeAmount = feeAmount.add(weeklyAmount.mul(penaltyMultiplier).div(100));
+                // fee is applied starting at 8% and decreasing by 1% every week
+                uint feeMultiplier = 8 - weeksSinceDeposit;
+                feeAmount = feeAmount.add(weeklyAmount.mul(feeMultiplier).div(100));
             }
             remaining = remaining.sub(weeklyAmount);
             if (remaining == 0) {
@@ -180,14 +180,14 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
 
     /* ========== MUTATIVE FUNCTIONS ========== */
 
-    function addPenaltyAmount(uint256 _amount) internal {
+    function addFeeAmount(uint256 _amount) internal {
         uint256 idx = block.timestamp.sub(startTime).div(604800);
         uint amount;
 
-        if (penaltyIndex < idx) {
-            while (penaltyIndex < idx) {
-                amount = amount.add(penaltyAmounts[penaltyIndex]);
-                penaltyIndex++;
+        if (feeIndex < idx) {
+            while (feeIndex < idx) {
+                amount = amount.add(feeAmounts[feeIndex]);
+                feeIndex++;
             }
             if (amount > 0) {
                 // withdraw LP position
@@ -204,17 +204,17 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
 
                 // add the reward token to the LIQR staking contract
                 amount = wantToken.balanceOf(address(this));
-                wantToken.safeTransfer(penaltyReceiver, amount);
-                IMultiRewards(penaltyReceiver).notifyRewardAmount(address(wantToken), amount);
+                wantToken.safeTransfer(feeReceiver, amount);
+                IMultiRewards(feeReceiver).notifyRewardAmount(address(wantToken), amount);
             }
         }
-        // transfer 50% of penalty tokens to treasury
+        // transfer 50% of fee tokens to treasury
         amount = _amount.div(2);
         stakingToken.transfer(treasury, amount);
 
-        // hold remaining penalty tokens for 8 weeks
+        // hold remaining fee tokens for 8 weeks
         idx = idx.add(8);
-        penaltyAmounts[idx] = penaltyAmounts[idx].add(_amount.sub(amount));
+        feeAmounts[idx] = feeAmounts[idx].add(_amount.sub(amount));
     }
 
     // `amount` is the total amount to deposit, inclusive of any fee amount to be paid
@@ -225,10 +225,10 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
         stakingToken.transferFrom(msg.sender, address(this), amount);
 
         // apply deposit fee, if any
-        uint256 penaltyAmount = depositFeeOnAmount(amount);
-        if (penaltyAmount > 0) {
-            addPenaltyAmount(penaltyAmount);
-            amount = amount.sub(penaltyAmount);
+        uint256 feeAmount = depositFeeOnAmount(amount);
+        if (feeAmount > 0) {
+            addFeeAmount(feeAmount);
+            amount = amount.sub(feeAmount);
         }
 
         _totalSupply = _totalSupply.add(amount);
@@ -244,7 +244,7 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
         emit Staked(msg.sender, amount);
     }
 
-    /// `amount` is the total to withdraw inclusive of any penalty amounts to be paid.
+    /// `amount` is the total to withdraw inclusive of any fee amounts to be paid.
     /// the final balance received may be up to 8% less than `amount` depending upon
     /// how recently the caller deposited
     function withdraw(uint256 amount) public nonReentrant updateReward(msg.sender) {
@@ -254,7 +254,7 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
         UserBalance storage user = userBalances[msg.sender];
         user.total = user.total.sub(amount);
 
-        uint256 amountAfterPenalty = 0;
+        uint256 amountAfterFee = 0;
         uint256 remaining = amount;
         uint256 timestamp = block.timestamp / 86400 * 86400;
         for (uint256 i = user.depositIndex; ; i++) {
@@ -266,11 +266,11 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
             uint256 weeksSinceDeposit = timestamp.sub(dep.timestamp).div(604800);
             if (weeksSinceDeposit < 8) {
                 // for balances deposited less than 8 weeks ago, a withdrawal
-                // penalty is applied starting at 8% and decreasing by 1% every week
-                uint penaltyMultiplier = 100 - (8 - weeksSinceDeposit);
-                amountAfterPenalty = amountAfterPenalty.add(weeklyAmount.mul(penaltyMultiplier).div(100));
+                // fee is applied starting at 8% and decreasing by 1% every week
+                uint feeMultiplier = 100 - (8 - weeksSinceDeposit);
+                amountAfterFee = amountAfterFee.add(weeklyAmount.mul(feeMultiplier).div(100));
             } else {
-                amountAfterPenalty = amountAfterPenalty.add(weeklyAmount);
+                amountAfterFee = amountAfterFee.add(weeklyAmount);
             }
             remaining = remaining.sub(weeklyAmount);
             dep.amount = dep.amount.sub(weeklyAmount);
@@ -280,10 +280,10 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
             }
         }
 
-        stakingToken.transfer(msg.sender, amountAfterPenalty);
-        uint256 penaltyAmount = amount.sub(amountAfterPenalty);
-        if (penaltyAmount > 0) {
-            addPenaltyAmount(penaltyAmount);
+        stakingToken.transfer(msg.sender, amountAfterFee);
+        uint256 feeAmount = amount.sub(amountAfterFee);
+        if (feeAmount > 0) {
+            addFeeAmount(feeAmount);
         }
         emit Withdrawn(msg.sender, amount);
     }
