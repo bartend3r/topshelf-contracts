@@ -28,7 +28,10 @@ contract InitialLiquidityPool {
     // chainlink price oracle for ETH/USD
     AggregatorV3Interface public oracle;
 
-    bytes32 public immutable whitelistRoot;
+    // initial whitelist root, valid immediately
+    bytes32 public immutable whitelistRoot1;
+    // second whitelist root, valid after two hours
+    bytes32 public immutable whitelistRoot2;
 
     // amount of `rewardToken` that will be added as liquidity
     uint256 public rewardTokenLpAmount;
@@ -89,7 +92,8 @@ contract InitialLiquidityPool {
         address _treasury,
         uint256 _startTime,
         uint256 _initialCap,
-        bytes32 _whitelistRoot
+        bytes32 _whitelistRoot1,
+        bytes32 _whitelistRoot2
     ) public {
         WETH = _weth;
         rewardToken = _rewardToken;
@@ -101,7 +105,9 @@ contract InitialLiquidityPool {
         depositStartTime = _startTime;
         depositEndTime = _startTime.add(86400);
         initialContributionCapInUSD = _initialCap;
-        whitelistRoot = _whitelistRoot;
+
+        whitelistRoot1 = _whitelistRoot1;
+        whitelistRoot2 = _whitelistRoot2;
     }
 
     // `rewardToken` should be transferred into the contract prior to calling this method
@@ -171,7 +177,12 @@ contract InitialLiquidityPool {
         }
 
         // Check if the computed hash (root) is equal to the provided root
-        require(computedHash == whitelistRoot, "Invalid claim proof");
+        // only the first root is accepted in the first two hours, afterwards both are valid
+        require(
+            computedHash == whitelistRoot1 ||
+            (block.timestamp.sub(depositStartTime) >= 7200 && computedHash == whitelistRoot2),
+            "Invalid claim proof"
+        );
     }
 
     // after the deposit period is finished and the soft cap has been reached,
