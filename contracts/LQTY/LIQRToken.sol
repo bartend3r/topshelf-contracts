@@ -134,13 +134,13 @@ contract LIQRToken is IERC20, IERC2612 {
         external
         override
     {
-        require(deadline >= now, 'LQTY: expired deadline');
+        require(deadline >= now, 'expired deadline');
         bytes32 digest = keccak256(abi.encodePacked('\x19\x01',
                          domainSeparator(), keccak256(abi.encode(
                          _PERMIT_TYPEHASH, owner, spender, amount,
                          _nonces[owner]++, deadline))));
         address recoveredAddress = ecrecover(digest, v, r, s);
-        require(recoveredAddress == owner, 'LQTY: invalid signature');
+        require(recoveredAddress == owner, 'invalid signature');
         _approve(owner, spender, amount);
     }
 
