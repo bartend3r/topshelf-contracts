@@ -52,9 +52,8 @@ contract LIQRToken is IERC20, IERC2612 {
     constructor
     (
         address _anyswapRouter,
-        uint256 _maxTotalSupply,
-        address[] memory _receivers,
-        uint[] memory _amounts
+        uint256 _supply,
+        uint256 _maxTotalSupply
     )
         public
     {
@@ -69,11 +68,7 @@ contract LIQRToken is IERC20, IERC2612 {
         _CACHED_CHAIN_ID = _chainID();
         _CACHED_DOMAIN_SEPARATOR = _buildDomainSeparator(_TYPE_HASH, hashedName, hashedVersion);
 
-        // --- Initial LQTY allocations ---
-
-        for (uint i = 0; i < _amounts.length; i++) {
-            _mint(_receivers[i], _amounts[i]);
-        }
+        _mint(msg.sender, _supply);
     }
 
     // --- External functions ---

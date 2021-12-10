@@ -7,16 +7,15 @@ import "../LQTY/LIQRToken.sol";
 contract LQTYTokenTester is LIQRToken {
     constructor
     (
-        address[] memory _receivers,
-        uint[] memory _amounts
+        uint256 _supply,
+        uint256 _maxSupply
     )
         public
         LIQRToken
     (
         address(0),
-        uint256(-1),
-        _receivers,
-        _amounts
+        _supply,
+        _maxSupply
     )
     {}
 
