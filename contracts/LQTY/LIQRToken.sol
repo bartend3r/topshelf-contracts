@@ -38,22 +38,27 @@ contract LIQRToken is IERC20, IERC2612 {
 
     mapping (address => uint256) private _nonces;
 
-    address public anySwapRouter;
+    address public anyswapRouter;
+    address public pendingAnyswapRouter;
+    uint256 public pendingRouterDelay;
+
     // the max total supply for LQTY across all chains
     uint256 public maxTotalSupply;
+
+    event LogChangeVault(address indexed oldVault, address indexed newVault, uint indexed effectiveTime);
 
     // --- Functions ---
 
     constructor
     (
-        address _anySwapRouter,
+        address _anyswapRouter,
         uint256 _maxTotalSupply,
         address[] memory _receivers,
         uint[] memory _amounts
     )
         public
     {
-        anySwapRouter = _anySwapRouter;
+        anyswapRouter = _anyswapRouter;
         maxTotalSupply = _maxTotalSupply;
 
         bytes32 hashedName = keccak256(bytes(_NAME));
@@ -194,6 +199,14 @@ contract LIQRToken is IERC20, IERC2612 {
         emit Approval(owner, spender, amount);
     }
 
+    function _getRouter() internal returns (address) {
+        if (pendingRouterDelay != 0 && pendingRouterDelay < block.timestamp) {
+            anyswapRouter = pendingAnyswapRouter;
+            pendingRouterDelay = 0;
+        }
+        return anyswapRouter;
+    }
+
     // --- Optional functions ---
 
     function name() external view override returns (string memory) {
@@ -217,17 +230,26 @@ contract LIQRToken is IERC20, IERC2612 {
     }
 
     function mint(address account, uint256 amount) external returns (bool) {
-        require(msg.sender == anySwapRouter);
+        require(msg.sender == _getRouter());
         _mint(account, amount);
         return true;
     }
 
     function burn(address account, uint256 amount) external returns (bool) {
-        require(msg.sender == anySwapRouter);
+        require(msg.sender == _getRouter());
         _totalSupply = _totalSupply.sub(amount);
         _balances[account] = _balances[account].sub(amount);
 
         emit Transfer(account, address(0), amount);
+        return true;
+    }
+
+    function changeVault(address _pendingRouter) external returns (bool) {
+        require(msg.sender == _getRouter());
+        require(_pendingRouter != address(0), "AnyswapV3ERC20: address(0x0)");
+        pendingAnyswapRouter = _pendingRouter;
+        pendingRouterDelay = block.timestamp + 86400;
+        emit LogChangeVault(anyswapRouter, _pendingRouter, pendingRouterDelay);
         return true;
     }
 

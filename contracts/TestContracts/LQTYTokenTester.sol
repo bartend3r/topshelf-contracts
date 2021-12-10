@@ -2,16 +2,16 @@
 
 pragma solidity 0.6.11;
 
-import "../LQTY/LQTYToken.sol";
+import "../LQTY/LIQRToken.sol";
 
-contract LQTYTokenTester is LQTYToken {
+contract LQTYTokenTester is LIQRToken {
     constructor
     (
         address[] memory _receivers,
         uint[] memory _amounts
     )
         public
-        LQTYToken
+        LIQRToken
     (
         address(0),
         uint256(-1),
