@@ -143,12 +143,12 @@ contract('LQTY Token', async accounts => {
 
   it("name(): returns the token's name", async () => {
     const name = await lqtyTokenTester.name()
-    assert.equal(name, "LQTY")
+    assert.equal(name, "LIQR")
   })
 
   it("symbol(): returns the token's symbol", async () => {
     const symbol = await lqtyTokenTester.symbol()
-    assert.equal(symbol, "LQTY")
+    assert.equal(symbol, "LIQR")
   })
 
   it("version(): returns the token contract's version", async () => {
@@ -335,18 +335,18 @@ contract('LQTY Token', async accounts => {
     // Check that we can not use re-use the same signature, since the user's nonce has been incremented (replay protection)
     await assertRevert(lqtyTokenTester.permit(
       approve.owner, approve.spender, approve.value,
-      deadline, v, r, s), 'LQTY: invalid signature')
+      deadline, v, r, s), 'invalid signature')
 
     // Check that the zero address fails
     await assertRevert(lqtyTokenTester.permit('0x0000000000000000000000000000000000000000',
-      approve.spender, approve.value, deadline, '0x99', r, s), 'LQTY: invalid signature')
+      approve.spender, approve.value, deadline, '0x99', r, s), 'invalid signature')
   })
 
   it('permit(): fails with expired deadline', async () => {
     const deadline = 1
 
     const { v, r, s, tx } = await buildPermitTx(deadline)
-    await assertRevert(tx, 'LQTY: expired deadline')
+    await assertRevert(tx, 'expired deadline')
   })
 
   it('permit(): fails with the wrong signature', async () => {
@@ -359,7 +359,7 @@ contract('LQTY Token', async accounts => {
       deadline, v, hexlify(r), hexlify(s)
     )
 
-    await assertRevert(tx, 'LQTY: invalid signature')
+    await assertRevert(tx, 'invalid signature')
   })
 })
 

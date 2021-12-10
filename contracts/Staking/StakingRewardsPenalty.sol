@@ -10,7 +10,6 @@ import "../Dependencies/Pausable.sol";
 import "../Interfaces/IUniswapV2Pair.sol";
 import "../Interfaces/IMultiRewards.sol";
 import "../Interfaces/ICommunityIssuance.sol";
-import "../Interfaces/IAnySwapERC20.sol";
 
 contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
     using SafeMath for uint256;
@@ -59,8 +58,6 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
 
     address public treasury;
 
-    bool public isRootChain;
-
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
 
@@ -74,8 +71,7 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
         address _burnToken,
         address _feeReceiver,
         ICommunityIssuance _rewardIssuer,
-        address _treasury,
-        bool _isRootChain
+        address _treasury
     )
         public
         Ownable()
@@ -88,11 +84,6 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
         rewardIssuer = _rewardIssuer;
         treasury = _treasury;
         startTime = block.timestamp;
-
-        isRootChain = _isRootChain;
-        if (!_isRootChain) {
-            IAnySwapERC20(_burnToken).Swapout(0, address(0xdead));
-        }
     }
 
     /* ========== VIEWS ========== */
@@ -196,11 +187,7 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
 
                 // burn the LIQR withdrawn from the LP position
                 amount = IERC20(burnToken).balanceOf(address(this));
-                if (isRootChain) {
-                    IERC20(burnToken).transfer(address(0xdead), amount);
-                } else {
-                    IAnySwapERC20(burnToken).Swapout(amount, address(0xdead));
-                }
+                IERC20(burnToken).transfer(address(0xdead), amount);
 
                 // add the reward token to the LIQR staking contract
                 amount = wantToken.balanceOf(address(this));

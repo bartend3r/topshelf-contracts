@@ -5,54 +5,15 @@ pragma solidity 0.6.11;
 import "../Dependencies/SafeMath.sol";
 import "../Dependencies/IERC20.sol";
 import "../Dependencies/IERC2612.sol";
-import "../Dependencies/console.sol";
 
-/*
-* Based upon OpenZeppelin's ERC20 contract:
-* https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/ERC20.sol
-*
-* and their EIP2612 (ERC20Permit / ERC712) functionality:
-* https://github.com/OpenZeppelin/openzeppelin-contracts/blob/53516bc555a454862470e7860a9b5254db4d00f5/contracts/token/ERC20/ERC20Permit.sol
-*
-*
-*  --- Functionality added specific to the LQTYToken ---
-*
-* 1) Transfer protection: blacklist of addresses that are invalid recipients (i.e. core Liquity contracts) in external
-* transfer() and transferFrom() calls. The purpose is to protect users from losing tokens by mistakenly sending LQTY directly to a Liquity
-* core contract, when they should rather call the right function.
-*
-* 2) sendToLQTYStaking(): callable only by Liquity core contracts, which move LQTY tokens from user -> LQTYStaking contract.
-*
-* 3) Supply hard-capped at 100 million
-*
-* 4) CommunityIssuance and LockupContractFactory addresses are set at deployment
-*
-* 5) The bug bounties / hackathons allocation of 2 million tokens is minted at deployment to an EOA
 
-* 6) 32 million tokens are minted at deployment to the CommunityIssuance contract
-*
-* 7) The LP rewards allocation of (1 + 1/3) million tokens is minted at deployent to a Staking contract
-*
-* 8) (64 + 2/3) million tokens are minted at deployment to the Liquity multisig
-*
-* 9) Until one year from deployment:
-* -Liquity multisig may only transfer() tokens to LockupContracts that have been deployed via & registered in the
-*  LockupContractFactory
-* -approve(), increaseAllowance(), decreaseAllowance() revert when called by the multisig
-* -transferFrom() reverts when the multisig is the sender
-* -sendToLQTYStaking() reverts when the multisig is the sender, blocking the multisig from staking its LQTY.
-*
-* After one year has passed since deployment of the LQTYToken, the restrictions on multisig operations are lifted
-* and the multisig has the same rights as any other address.
-*/
-
-contract LQTYToken is IERC20, IERC2612 {
+contract LIQRToken is IERC20, IERC2612 {
     using SafeMath for uint256;
 
     // --- ERC20 Data ---
 
-    string constant internal _NAME = "LQTY";
-    string constant internal _SYMBOL = "LQTY";
+    string constant internal _NAME = "LIQR";
+    string constant internal _SYMBOL = "LIQR";
     string constant internal _VERSION = "1";
     uint8 constant internal  _DECIMALS = 18;
 
@@ -77,15 +38,28 @@ contract LQTYToken is IERC20, IERC2612 {
 
     mapping (address => uint256) private _nonces;
 
+    address public anyswapRouter;
+    address public pendingAnyswapRouter;
+    uint256 public pendingRouterDelay;
+
+    // the max total supply for LQTY across all chains
+    uint256 public maxTotalSupply;
+
+    event LogChangeVault(address indexed oldVault, address indexed newVault, uint indexed effectiveTime);
+
     // --- Functions ---
 
     constructor
     (
-        address[] memory _receivers,
-        uint[] memory _amounts
+        address _anyswapRouter,
+        uint256 _supply,
+        uint256 _maxTotalSupply
     )
         public
     {
+        anyswapRouter = _anyswapRouter;
+        maxTotalSupply = _maxTotalSupply;
+
         bytes32 hashedName = keccak256(bytes(_NAME));
         bytes32 hashedVersion = keccak256(bytes(_VERSION));
 
@@ -94,11 +68,7 @@ contract LQTYToken is IERC20, IERC2612 {
         _CACHED_CHAIN_ID = _chainID();
         _CACHED_DOMAIN_SEPARATOR = _buildDomainSeparator(_TYPE_HASH, hashedName, hashedVersion);
 
-        // --- Initial LQTY allocations ---
-
-        for (uint i = 0; i < _amounts.length; i++) {
-            _mint(_receivers[i], _amounts[i]);
-        }
+        _mint(msg.sender, _supply);
     }
 
     // --- External functions ---
@@ -164,13 +134,13 @@ contract LQTYToken is IERC20, IERC2612 {
         external
         override
     {
-        require(deadline >= now, 'LQTY: expired deadline');
+        require(deadline >= now, 'expired deadline');
         bytes32 digest = keccak256(abi.encodePacked('\x19\x01',
                          domainSeparator(), keccak256(abi.encode(
                          _PERMIT_TYPEHASH, owner, spender, amount,
                          _nonces[owner]++, deadline))));
         address recoveredAddress = ecrecover(digest, v, r, s);
-        require(recoveredAddress == owner, 'LQTY: invalid signature');
+        require(recoveredAddress == owner, 'invalid signature');
         _approve(owner, spender, amount);
     }
 
@@ -199,7 +169,6 @@ contract LQTYToken is IERC20, IERC2612 {
 
         if (recipient == address(0xdead)) {
             // transferring to 0x00..DEAD burns tokens
-            // this is necessary to allow burning via AnySwap swapOut
             _totalSupply = _totalSupply.sub(amount);
         } else {
             _balances[recipient] = _balances[recipient].add(amount);
@@ -212,6 +181,8 @@ contract LQTYToken is IERC20, IERC2612 {
 
         _totalSupply = _totalSupply.add(amount);
         _balances[account] = _balances[account].add(amount);
+        require(_totalSupply <= maxTotalSupply, "Exceeds max total supply");
+
         emit Transfer(address(0), account, amount);
     }
 
@@ -221,6 +192,14 @@ contract LQTYToken is IERC20, IERC2612 {
 
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
+    }
+
+    function _getRouter() internal returns (address) {
+        if (pendingRouterDelay != 0 && pendingRouterDelay < block.timestamp) {
+            anyswapRouter = pendingAnyswapRouter;
+            pendingRouterDelay = 0;
+        }
+        return anyswapRouter;
     }
 
     // --- Optional functions ---
@@ -244,4 +223,29 @@ contract LQTYToken is IERC20, IERC2612 {
     function permitTypeHash() external view override returns (bytes32) {
         return _PERMIT_TYPEHASH;
     }
+
+    function mint(address account, uint256 amount) external returns (bool) {
+        require(msg.sender == _getRouter());
+        _mint(account, amount);
+        return true;
+    }
+
+    function burn(address account, uint256 amount) external returns (bool) {
+        require(msg.sender == _getRouter());
+        _totalSupply = _totalSupply.sub(amount);
+        _balances[account] = _balances[account].sub(amount);
+
+        emit Transfer(account, address(0), amount);
+        return true;
+    }
+
+    function changeVault(address _pendingRouter) external returns (bool) {
+        require(msg.sender == _getRouter());
+        require(_pendingRouter != address(0), "AnyswapV3ERC20: address(0x0)");
+        pendingAnyswapRouter = _pendingRouter;
+        pendingRouterDelay = block.timestamp + 86400;
+        emit LogChangeVault(anyswapRouter, _pendingRouter, pendingRouterDelay);
+        return true;
+    }
+
 }

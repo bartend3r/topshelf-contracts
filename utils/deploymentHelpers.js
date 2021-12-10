@@ -14,7 +14,7 @@ const FlashLender = artifacts.require("./FlashLender.sol")
 const SystemShutdown = artifacts.require("./SystemShutdown.sol")
 
 const LQTYStaking = artifacts.require("./MultiRewards.sol")
-const LQTYToken = artifacts.require("./LQTYToken.sol")
+const LQTYToken = artifacts.require("./LIQRToken.sol")
 const CommunityIssuance = artifacts.require("./CommunityIssuance.sol")
 const LQTYTreasury = artifacts.require("./LQTYToken/LQTYTreasury.sol")
 
@@ -175,10 +175,12 @@ class DeploymentHelper {
     LQTYTreasury.setAsDeployed(lqtyTreasury)
 
     // Deploy LQTY Token, passing Community Issuance and Factory addresses to the constructor
-    const lqtyToken = await LQTYToken.new(
-        [lqtyTreasury.address, bountyAddress, lpRewardsAddress, multisigAddress],
-        ["32000000000000000000000000", "2000000000000000000000000", "1333333333333333333333333", "64666666666666666666666667"],
-    )
+    const lqtyToken = await LQTYToken.new(ZERO_ADDRESS, "100000000000000000000000000", "300000000000000000000000000")
+    lqtyToken.transfer(lqtyTreasury.address, "32000000000000000000000000")
+    lqtyToken.transfer(bountyAddress, "2000000000000000000000000")
+    lqtyToken.transfer(lpRewardsAddress, "1333333333333333333333333")
+    lqtyToken.transfer(multisigAddress, "64666666666666666666666667")
+
     LQTYToken.setAsDeployed(lqtyToken)
 
     const LQTYContracts = {
@@ -201,10 +203,11 @@ class DeploymentHelper {
 
 
     // Deploy LQTY Token, passing Community Issuance and Factory addresses to the constructor
-    const lqtyToken = await LQTYTokenTester.new(
-        [lqtyTreasury.address, bountyAddress, lpRewardsAddress, multisigAddress],
-        ["32000000000000000000000000", "2000000000000000000000000", "1333333333333333333333333", "64666666666666666666666667"],
-    )
+    const lqtyToken = await LQTYTokenTester.new("100000000000000000000000000", "300000000000000000000000000")
+    lqtyToken.transfer(lqtyTreasury.address, "32000000000000000000000000")
+    lqtyToken.transfer(bountyAddress, "2000000000000000000000000")
+    lqtyToken.transfer(lpRewardsAddress, "1333333333333333333333333")
+    lqtyToken.transfer(multisigAddress, "64666666666666666666666667")
     LQTYTokenTester.setAsDeployed(lqtyToken)
 
     const LQTYContracts = {
@@ -256,10 +259,11 @@ class DeploymentHelper {
 
     /* Deploy LQTY Token, passing Community Issuance,  LQTYStaking, and Factory addresses
     to the constructor  */
-    const lqtyToken = await LQTYToken.new(
-      [communityIssuance.address, bountyAddress, lpRewardsAddress, multisigAddress],
-      ["32000000000000000000000000", "2000000000000000000000000", "1333333333333333333333333", "64666666666666666666666667"],
-    )
+    const lqtyToken = await LQTYToken.new(ZERO_ADDRESS, "100000000000000000000000000", "300000000000000000000000000")
+    lqtyToken.transfer(lqtyTreasury.address, "32000000000000000000000000")
+    lqtyToken.transfer(bountyAddress, "2000000000000000000000000")
+    lqtyToken.transfer(lpRewardsAddress, "1333333333333333333333333")
+    lqtyToken.transfer(multisigAddress, "64666666666666666666666667")
 
     const LQTYContracts = {
       lqtyStaking,
