@@ -29,5 +29,5 @@ interface ICollSurplusPool {
 
     function accountSurplus(address _account, uint _amount) external;
 
-    function claimColl(address _account) external;
+    function claimColl(address _account, address _receiver) external;
 }
