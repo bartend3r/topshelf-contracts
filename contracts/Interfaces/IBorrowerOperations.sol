@@ -58,7 +58,7 @@ interface IBorrowerOperations {
 
     function adjustTrove(address _account, uint _maxFee, uint _collDeposit, uint _collWithdrawal, uint _debtChange, bool isDebtIncrease, address _upperHint, address _lowerHint) external;
 
-    function claimCollateral() external;
+    function claimCollateral(address _account) external;
 
     function getCompositeDebt(uint _debt) external view returns (uint);
 

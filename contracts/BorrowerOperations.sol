@@ -353,7 +353,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, DelegatedOps
         require(_collDeposit != 0 || _collWithdrawal != 0 || _LUSDChange != 0, "BorrowerOps: There must be either a collateral change or a debt change");
         _requireTroveisActive(contractsCache.troveManager, _borrower);
 
-        // Confirm the operation is either a borrower adjusting their own trove, a delegator adjusting a delegatee's trove, 
+        // Confirm the operation is either a borrower adjusting their own trove, a delegator adjusting a delegatee's trove,
         // or a pure ETH transfer from the Stability Pool to a trove
         require(_caller == _borrower || isApprovedDelegate[_borrower][_caller] || (_caller == stabilityPoolAddress && _collDeposit > 0 && _LUSDChange == 0), 'callerOrDelegated');
 
@@ -446,9 +446,9 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, DelegatedOps
     /**
      * Claim remaining collateral from a redemption or from a liquidation with ICR > MCR in Recovery Mode
      */
-    function claimCollateral() external override {
+    function claimCollateral(address _account) external callerOrDelegated(_account) override {
         // send ETH from CollSurplus Pool to owner
-        collSurplusPool.claimColl(msg.sender);
+        collSurplusPool.claimColl(_account, msg.sender);
     }
 
     // --- Helper functions ---

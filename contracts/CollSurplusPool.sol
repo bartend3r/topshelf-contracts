@@ -83,7 +83,7 @@ contract CollSurplusPool is Ownable, CheckContract, ICollSurplusPool {
         emit CollBalanceUpdated(_account, newAmount);
     }
 
-    function claimColl(address _account) external override {
+    function claimColl(address _account, address _receiver) external override {
         _requireCallerIsBorrowerOperations();
         uint claimableColl = balances[_account];
         require(claimableColl > 0, "CollSurplusPool: No collateral available to claim");
@@ -92,9 +92,9 @@ contract CollSurplusPool is Ownable, CheckContract, ICollSurplusPool {
         emit CollBalanceUpdated(_account, 0);
 
         ETH = ETH.sub(claimableColl);
-        emit EtherSent(_account, claimableColl);
+        emit EtherSent(_receiver, claimableColl);
 
-        require(collateralToken.transfer(_account, claimableColl), "CollSurplusPool: sending ETH failed");
+        require(collateralToken.transfer(_receiver, claimableColl), "CollSurplusPool: sending ETH failed");
     }
 
     // --- 'require' functions ---
