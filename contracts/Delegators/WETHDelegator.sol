@@ -29,7 +29,7 @@ contract WETHDelegator {
         address _upperHint,
         address _lowerHint
     ) external payable {
-        require(msg.value == _collateralAmount);
+        require(msg.value == _collateralAmount, "Invalid amount");
 
         WETH.deposit{value: msg.value}();
         borrowerOperations.openTrove(
@@ -52,7 +52,7 @@ contract WETHDelegator {
         address _upperHint,
         address _lowerHint
     ) external payable {
-        require(msg.value == _collDeposit);
+        require(msg.value == _collDeposit, "Invalid amount");
 
         if (_collDeposit > 0) {
             WETH.deposit{value: msg.value}();
