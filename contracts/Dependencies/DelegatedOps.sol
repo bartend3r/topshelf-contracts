@@ -6,7 +6,7 @@ contract DelegatedOps {
     mapping(address => mapping(address => bool)) public isApprovedDelegate;
 
     modifier callerOrDelegated(address _account) {
-        require(msg.sender == _account || isApprovedDelegate[_account][msg.sender]);
+        require(msg.sender == _account || isApprovedDelegate[_account][msg.sender], "Delegate not approved");
         _;
     }
 
