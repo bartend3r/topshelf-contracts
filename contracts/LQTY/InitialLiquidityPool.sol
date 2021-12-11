@@ -95,6 +95,10 @@ contract InitialLiquidityPool {
         bytes32 _whitelistRoot1,
         bytes32 _whitelistRoot2
     ) public {
+        // safety check to make sure treasury is configured correctly
+        // so we don't end up bricking everything in `addLiquidity`
+        require(ILQTYTreasury(treasury).issuanceStartTime() > block.timestamp);
+
         WETH = _weth;
         rewardToken = _rewardToken;
         oracle = _oracle;
@@ -131,6 +135,7 @@ contract InitialLiquidityPool {
 
     // contributors call this method to deposit ETH during the deposit period
     function deposit(bytes32[] calldata _claimProof) external payable {
+        require(rewardTokenLpAmount > 0, "No reward tokens added");
         require(block.timestamp >= depositStartTime, "Not yet started");
         require(block.timestamp < depositEndTime, "Already finished");
         require(msg.value > 0, "Cannot deposit 0");
