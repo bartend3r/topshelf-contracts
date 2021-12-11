@@ -57,6 +57,9 @@ contract WETHDelegator {
         if (_collDeposit > 0) {
             WETH.deposit{value: msg.value}();
         }
+        if (!_isDebtIncrease && _LUSDChange > 0) {
+            LUSD.transferFrom(msg.sender, address(this), _LUSDChange);
+        }
         borrowerOperations.adjustTrove(
             msg.sender,
             _maxFeePercentage,
@@ -67,6 +70,10 @@ contract WETHDelegator {
             _upperHint,
             _lowerHint
         );
+        if (_collWithdrawal > 0) {
+            WETH.withdraw(_collWithdrawal);
+            msg.sender.transfer(_collWithdrawal);
+        }
         if (_isDebtIncrease && _LUSDChange > 0) {
             LUSD.transfer(msg.sender, _LUSDChange);
         }
