@@ -173,7 +173,7 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
 
     function addFeeAmount(uint256 _amount) internal {
         uint256 idx = block.timestamp.sub(startTime).div(604800);
-        uint amount;
+        uint256 amount;
 
         if (feeIndex < idx) {
             while (feeIndex < idx) {
@@ -186,13 +186,14 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
                 stakingToken.burn(address(this));
 
                 // burn the LIQR withdrawn from the LP position
-                amount = IERC20(burnToken).balanceOf(address(this));
-                IERC20(burnToken).transfer(address(0xdead), amount);
+                uint256 burnAmount = IERC20(burnToken).balanceOf(address(this));
+                IERC20(burnToken).transfer(address(0xdead), burnAmount);
 
                 // add the reward token to the LIQR staking contract
-                amount = wantToken.balanceOf(address(this));
+                uint256 rewardAmount = wantToken.balanceOf(address(this));
                 wantToken.safeTransfer(feeReceiver, amount);
-                IMultiRewards(feeReceiver).notifyRewardAmount(address(wantToken), amount);
+                IMultiRewards(feeReceiver).notifyRewardAmount(address(wantToken), rewardAmount);
+                emit FeeProcessed(amount, burnAmount, rewardAmount);
             }
         }
         // transfer 50% of fee tokens to treasury
@@ -228,7 +229,7 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
         } else {
             user.deposits[length-1].amount = user.deposits[length-1].amount.add(amount);
         }
-        emit Staked(msg.sender, amount);
+        emit Staked(msg.sender, amount, feeAmount);
     }
 
     /// `amount` is the total to withdraw inclusive of any fee amounts to be paid.
@@ -272,7 +273,7 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
         if (feeAmount > 0) {
             addFeeAmount(feeAmount);
         }
-        emit Withdrawn(msg.sender, amount);
+        emit Withdrawn(msg.sender, amount, feeAmount);
     }
 
     function getReward() public nonReentrant updateReward(msg.sender) {
@@ -327,8 +328,9 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
     /* ========== EVENTS ========== */
 
     event RewardAdded(uint256 reward);
-    event Staked(address indexed user, uint256 amount);
-    event Withdrawn(address indexed user, uint256 amount);
+    event Staked(address indexed user, uint256 stakeAmount, uint256 feeAmount);
+    event Withdrawn(address indexed user, uint256 withdrawAmount, uint256 feeAmount);
+    event FeeProcessed(uint256 lpTokensWithdrawn, uint256 burnAmount, uint256 rewardAmount);
     event RewardPaid(address indexed user, uint256 reward);
     event Recovered(address token, uint256 amount);
 }

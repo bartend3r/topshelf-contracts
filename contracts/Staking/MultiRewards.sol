@@ -145,7 +145,7 @@ contract MultiRewards is ReentrancyGuard, Pausable {
 
         rewardData[_rewardsToken].lastUpdateTime = block.timestamp;
         rewardData[_rewardsToken].periodFinish = block.timestamp.add(rewardsDuration);
-        emit RewardAdded(reward);
+        emit RewardAdded(_rewardsToken, reward);
     }
 
     // Added to support recovering LP Rewards from other systems such as BAL to be distributed to holders
@@ -173,7 +173,7 @@ contract MultiRewards is ReentrancyGuard, Pausable {
 
     /* ========== EVENTS ========== */
 
-    event RewardAdded(uint256 reward);
+    event RewardAdded(address indexed token, uint256 reward);
     event Staked(address indexed user, uint256 amount);
     event Withdrawn(address indexed user, uint256 amount);
     event RewardPaid(address indexed user, address indexed rewardsToken, uint256 reward);
