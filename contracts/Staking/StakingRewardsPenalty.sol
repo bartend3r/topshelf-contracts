@@ -97,7 +97,12 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
     }
 
     function userDeposits(address account) external view returns (Deposit[] memory deposits) {
-        deposits = userBalances[account].deposits;
+        UserBalance storage user = userBalances[account];
+        deposits = new Deposit[](user.deposits.length.sub(user.depositIndex));
+
+        for (uint256 i = 0; i < deposits.length; i++) {
+            deposits[i] = user.deposits[user.depositIndex + i];
+        }
         return deposits;
     }
 
