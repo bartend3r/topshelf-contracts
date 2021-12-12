@@ -92,4 +92,12 @@ contract WETHDelegator {
             LUSD.transfer(msg.sender, amount);
         }
     }
+
+    function claimCollateral() external {
+        borrowerOperations.claimCollateral(msg.sender);
+
+        uint256 amount = WETH.balanceOf(address(this));
+        WETH.withdraw(amount);
+        msg.sender.transfer(amount);
+    }
 }
