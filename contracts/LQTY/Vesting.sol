@@ -39,7 +39,7 @@ contract Vesting {
     function claim(address receiver, uint amount) public {
         updateAvailableSupply();
         uint claimable = claimable(msg.sender);
-        require(claimable > 0);
+        require(claimable > 0, "Nothing claimable");
         if (amount == 0) {
             amount = claimable.sub(claimed[msg.sender]);
         } else {
