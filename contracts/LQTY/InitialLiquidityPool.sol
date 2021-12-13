@@ -3,6 +3,7 @@ pragma solidity 0.6.11;
 import "../Dependencies/AggregatorV3Interface.sol";
 import "../Dependencies/IERC20.sol";
 import "../Dependencies/IWETH.sol";
+import "../Dependencies/Ownable.sol";
 import "../Dependencies/SafeMath.sol";
 import "../Interfaces/ILQTYTreasury.sol";
 
@@ -14,7 +15,7 @@ interface IUniswapV2Pair {
     function mint(address to) external;
 }
 
-contract InitialLiquidityPool {
+contract InitialLiquidityPool is Ownable {
     using SafeMath for uint256;
 
     // token that this contract accepts from contributors
@@ -77,6 +78,8 @@ contract InitialLiquidityPool {
     uint256 public currentDepositTotal;
     uint256 public currentRewardTotal;
 
+    bool public liquidityAdded;
+
     struct UserDeposit {
         uint256 amount;
         uint256 streamed;
@@ -94,7 +97,7 @@ contract InitialLiquidityPool {
         uint256 _initialCap,
         bytes32 _whitelistRoot1,
         bytes32 _whitelistRoot2
-    ) public {
+    ) public Ownable() {
         // safety check to make sure treasury is configured correctly
         // so we don't end up bricking everything in `addLiquidity`
         require(ILQTYTreasury(_treasury).issuanceStartTime() > block.timestamp);
@@ -192,9 +195,10 @@ contract InitialLiquidityPool {
 
     // after the deposit period is finished and the soft cap has been reached,
     // call this method to add liquidity and begin reward streaming for contributors
-    function addLiquidity() public virtual {
+    function addLiquidity() public onlyOwner {
         require(block.timestamp >= depositEndTime, "Deposits are still open");
         require(totalReceived >= softCapInETH, "Soft cap not reached");
+        require(!liquidityAdded, "Liquidity already added");
         uint256 amount = address(this).balance;
         WETH.deposit{ value: amount }();
         WETH.transfer(lpToken, amount);
@@ -206,6 +210,7 @@ contract InitialLiquidityPool {
 
         currentDepositTotal = totalReceived;
         currentRewardTotal = rewardTokenSaleAmount;
+        liquidityAdded = true;
     }
 
     // if the deposit period finishes and the soft cap was not reached, contributors
