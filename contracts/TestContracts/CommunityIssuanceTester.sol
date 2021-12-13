@@ -6,7 +6,7 @@ import "../LQTY/CommunityIssuance.sol";
 
 contract CommunityIssuanceTester is CommunityIssuance {
 
-    constructor(uint _supplyCap, uint _issuanceFactor) public CommunityIssuance(_supplyCap, _issuanceFactor) {}
+    constructor(uint _supplyCap, uint _issuanceFactor) public CommunityIssuance(_supplyCap, _issuanceFactor, 0) {}
 
     function obtainLQTY(uint _amount) external {
         lqtyToken.transfer(msg.sender, _amount);

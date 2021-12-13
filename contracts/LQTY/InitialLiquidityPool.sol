@@ -3,6 +3,7 @@ pragma solidity 0.6.11;
 import "../Dependencies/AggregatorV3Interface.sol";
 import "../Dependencies/IERC20.sol";
 import "../Dependencies/IWETH.sol";
+import "../Dependencies/Ownable.sol";
 import "../Dependencies/SafeMath.sol";
 import "../Interfaces/ILQTYTreasury.sol";
 
@@ -14,7 +15,7 @@ interface IUniswapV2Pair {
     function mint(address to) external;
 }
 
-contract InitialLiquidityPool {
+contract InitialLiquidityPool is Ownable {
     using SafeMath for uint256;
 
     // token that this contract accepts from contributors
@@ -77,12 +78,20 @@ contract InitialLiquidityPool {
     uint256 public currentDepositTotal;
     uint256 public currentRewardTotal;
 
+    bool public liquidityAdded;
+    bool public isKilled;
+
     struct UserDeposit {
         uint256 amount;
         uint256 streamed;
     }
 
     mapping(address => UserDeposit) public userAmounts;
+
+    event Deposit(address indexed user, uint256 amount);
+    event Withdrawal(address indexed user, uint256 amount);
+    event Claim(address indexed user, uint256 amount);
+    event EarlyExit(address indexed user, uint256 amount);
 
     constructor(
         IWETH _weth,
@@ -94,11 +103,7 @@ contract InitialLiquidityPool {
         uint256 _initialCap,
         bytes32 _whitelistRoot1,
         bytes32 _whitelistRoot2
-    ) public {
-        // safety check to make sure treasury is configured correctly
-        // so we don't end up bricking everything in `addLiquidity`
-        require(ILQTYTreasury(treasury).issuanceStartTime() > block.timestamp);
-
+    ) public Ownable() {
         WETH = _weth;
         rewardToken = _rewardToken;
         oracle = _oracle;
@@ -112,15 +117,26 @@ contract InitialLiquidityPool {
 
         whitelistRoot1 = _whitelistRoot1;
         whitelistRoot2 = _whitelistRoot2;
+
+        streamStartTime = ILQTYTreasury(_treasury).issuanceStartTime();
+        streamEndTime = streamStartTime.add(streamDuration);
+        require(streamStartTime > block.timestamp);
     }
 
     // `rewardToken` should be transferred into the contract prior to calling this method
     // this must be called prior to `depositStartTime`
-    function notifyRewardAmount() public {
+    function notifyRewardAmount() public onlyOwner {
         require(block.timestamp < depositStartTime, "Too late");
         uint amount = rewardToken.balanceOf(address(this));
         rewardTokenLpAmount = amount.mul(2).div(5);
         rewardTokenSaleAmount = amount.sub(rewardTokenLpAmount);
+    }
+
+    // if there is an issue during the deposits or when adding liquidity
+    // the owner can kill and contributors may withdraw their funds
+    function kill() public onlyOwner {
+        require(!liquidityAdded, "Liquidity already added");
+        isKilled = true;
     }
 
     function currentContributorCapInETH() public view returns (uint256) {
@@ -135,6 +151,7 @@ contract InitialLiquidityPool {
 
     // contributors call this method to deposit ETH during the deposit period
     function deposit(bytes32[] calldata _claimProof) external payable {
+        require(!isKilled, "Killed");
         require(rewardTokenLpAmount > 0, "No reward tokens added");
         require(block.timestamp >= depositStartTime, "Not yet started");
         require(block.timestamp < depositEndTime, "Already finished");
@@ -164,6 +181,7 @@ contract InitialLiquidityPool {
             depositEndTime = block.timestamp.add(gracePeriod);
         }
         totalReceived = newTotal;
+        emit Deposit(msg.sender, msg.value);
     }
 
     function verify(bytes32[] calldata proof) internal view {
@@ -192,37 +210,40 @@ contract InitialLiquidityPool {
 
     // after the deposit period is finished and the soft cap has been reached,
     // call this method to add liquidity and begin reward streaming for contributors
-    function addLiquidity() public virtual {
+    function addLiquidity() public onlyOwner {
+        require(!isKilled, "Killed");
         require(block.timestamp >= depositEndTime, "Deposits are still open");
         require(totalReceived >= softCapInETH, "Soft cap not reached");
+        require(!liquidityAdded, "Liquidity already added");
         uint256 amount = address(this).balance;
         WETH.deposit{ value: amount }();
         WETH.transfer(lpToken, amount);
         rewardToken.transfer(lpToken, rewardTokenLpAmount);
         IUniswapV2Pair(lpToken).mint(treasury);
 
-        streamStartTime = ILQTYTreasury(treasury).issuanceStartTime();
-        streamEndTime = streamStartTime.add(streamDuration);
-
         currentDepositTotal = totalReceived;
         currentRewardTotal = rewardTokenSaleAmount;
+        liquidityAdded = true;
     }
 
     // if the deposit period finishes and the soft cap was not reached, contributors
     // may call this method to withdraw their deposited balance
     function withdraw() public {
-        require(block.timestamp >= depositEndTime, "Deposits are still open");
-        require(totalReceived < softCapInETH, "Cap was reached");
+        if (!isKilled) {
+            require(block.timestamp >= depositEndTime, "Deposits are still open");
+            require(totalReceived < softCapInETH, "Cap was reached");
+        }
         uint256 amount = userAmounts[msg.sender].amount;
         require(amount > 0, "Nothing to withdraw");
         userAmounts[msg.sender].amount = 0;
         msg.sender.transfer(amount);
+        emit Withdrawal(msg.sender, amount);
     }
 
     // once the streaming period begins, this returns the currently claimable
     // balance of `rewardToken` for a contributor
     function claimable(address _user) public view returns (uint256) {
-        if (streamStartTime == 0 || block.timestamp < streamStartTime) {
+        if (block.timestamp < streamStartTime || !liquidityAdded) {
             return 0;
         }
         uint256 totalClaimable = currentRewardTotal.mul(userAmounts[_user].amount).div(
@@ -238,11 +259,14 @@ contract InitialLiquidityPool {
 
     // claim a pending `rewardToken` balance
     function claimReward() external {
+        require(!isKilled, "Killed");
+        require(liquidityAdded, "Liquidity was not added");
         uint256 amount = claimable(msg.sender);
         userAmounts[msg.sender].streamed = userAmounts[msg.sender].streamed.add(
             amount
         );
         rewardToken.transfer(msg.sender, amount);
+        emit Claim(msg.sender, amount);
     }
 
     // withdraw all available `rewardToken` balance immediately
@@ -251,6 +275,8 @@ contract InitialLiquidityPool {
     // other contributors who have not yet exitted. If the last contributor exits
     // early, any remaining tokens are are burned.
     function earlyExit() external {
+        require(!isKilled, "Killed");
+        require(liquidityAdded, "Liquidity was not added");
         require(block.timestamp > streamStartTime, "Streaming not active");
         require(block.timestamp < streamEndTime, "Streaming has finished");
         require(userAmounts[msg.sender].amount > 0, "No balance");
@@ -281,5 +307,6 @@ contract InitialLiquidityPool {
             uint256 remaining = rewardToken.balanceOf(address(this));
             rewardToken.transfer(address(0xdead), remaining);
         }
+        emit EarlyExit(msg.sender, claimable);
     }
 }

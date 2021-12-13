@@ -61,9 +61,10 @@ contract CommunityIssuance is ICommunityIssuance, Ownable, BaseMath {
 
     // --- Functions ---
 
-    constructor(uint _supplyCap, uint _issuanceFactor) public {
+    constructor(uint _supplyCap, uint _issuanceFactor, uint _issuanceDelay) public {
         LQTYSupplyCap = _supplyCap;
         ISSUANCE_FACTOR = _issuanceFactor;
+        issuanceStartTime = _issuanceDelay;
     }
 
     function setAddresses
@@ -81,7 +82,7 @@ contract CommunityIssuance is ICommunityIssuance, Ownable, BaseMath {
         stabilityPoolAddress = _stabilityPoolAddress;
         lqtyTreasury = _lqtyTreasuryAddress;
         shutdownAdmin = _shutdownAdminAddress;
-        issuanceStartTime = ILQTYTreasury(_lqtyTreasuryAddress).issuanceStartTime();
+        issuanceStartTime = ILQTYTreasury(_lqtyTreasuryAddress).issuanceStartTime().add(issuanceStartTime);
 
         require(lqtyToken.allowance(_lqtyTreasuryAddress, address(this)) >= LQTYSupplyCap);
 
