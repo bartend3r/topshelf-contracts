@@ -79,6 +79,7 @@ contract InitialLiquidityPool is Ownable {
     uint256 public currentRewardTotal;
 
     bool public liquidityAdded;
+    bool public isKilled;
 
     struct UserDeposit {
         uint256 amount;
@@ -119,11 +120,18 @@ contract InitialLiquidityPool is Ownable {
 
     // `rewardToken` should be transferred into the contract prior to calling this method
     // this must be called prior to `depositStartTime`
-    function notifyRewardAmount() public {
+    function notifyRewardAmount() public onlyOwner {
         require(block.timestamp < depositStartTime, "Too late");
         uint amount = rewardToken.balanceOf(address(this));
         rewardTokenLpAmount = amount.mul(2).div(5);
         rewardTokenSaleAmount = amount.sub(rewardTokenLpAmount);
+    }
+
+    // if there is an issue during the deposits or when adding liquidity
+    // the owner can kill and contributors may withdraw their funds
+    function kill() public onlyOwner {
+        require(!liquidityAdded, "Liquidity already added");
+        isKilled = true;
     }
 
     function currentContributorCapInETH() public view returns (uint256) {
@@ -138,6 +146,7 @@ contract InitialLiquidityPool is Ownable {
 
     // contributors call this method to deposit ETH during the deposit period
     function deposit(bytes32[] calldata _claimProof) external payable {
+        require(!isKilled, "Killed");
         require(rewardTokenLpAmount > 0, "No reward tokens added");
         require(block.timestamp >= depositStartTime, "Not yet started");
         require(block.timestamp < depositEndTime, "Already finished");
@@ -196,6 +205,7 @@ contract InitialLiquidityPool is Ownable {
     // after the deposit period is finished and the soft cap has been reached,
     // call this method to add liquidity and begin reward streaming for contributors
     function addLiquidity() public onlyOwner {
+        require(!isKilled, "Killed");
         require(block.timestamp >= depositEndTime, "Deposits are still open");
         require(totalReceived >= softCapInETH, "Soft cap not reached");
         require(!liquidityAdded, "Liquidity already added");
@@ -216,8 +226,10 @@ contract InitialLiquidityPool is Ownable {
     // if the deposit period finishes and the soft cap was not reached, contributors
     // may call this method to withdraw their deposited balance
     function withdraw() public {
-        require(block.timestamp >= depositEndTime, "Deposits are still open");
-        require(totalReceived < softCapInETH, "Cap was reached");
+        if (!isKilled) {
+            require(block.timestamp >= depositEndTime, "Deposits are still open");
+            require(totalReceived < softCapInETH, "Cap was reached");
+        }
         uint256 amount = userAmounts[msg.sender].amount;
         require(amount > 0, "Nothing to withdraw");
         userAmounts[msg.sender].amount = 0;
@@ -243,6 +255,7 @@ contract InitialLiquidityPool is Ownable {
 
     // claim a pending `rewardToken` balance
     function claimReward() external {
+        require(!isKilled, "Killed");
         uint256 amount = claimable(msg.sender);
         userAmounts[msg.sender].streamed = userAmounts[msg.sender].streamed.add(
             amount
@@ -256,6 +269,7 @@ contract InitialLiquidityPool is Ownable {
     // other contributors who have not yet exitted. If the last contributor exits
     // early, any remaining tokens are are burned.
     function earlyExit() external {
+        require(!isKilled, "Killed");
         require(block.timestamp > streamStartTime, "Streaming not active");
         require(block.timestamp < streamEndTime, "Streaming has finished");
         require(userAmounts[msg.sender].amount > 0, "No balance");
