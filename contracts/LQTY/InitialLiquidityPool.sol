@@ -88,6 +88,11 @@ contract InitialLiquidityPool is Ownable {
 
     mapping(address => UserDeposit) public userAmounts;
 
+    event Deposit(address indexed user, uint256 amount);
+    event Withdrawal(address indexed user, uint256 amount);
+    event Claim(address indexed user, uint256 amount);
+    event EarlyExit(address indexed user, uint256 amount);
+
     constructor(
         IWETH _weth,
         IERC20 _rewardToken,
@@ -176,6 +181,7 @@ contract InitialLiquidityPool is Ownable {
             depositEndTime = block.timestamp.add(gracePeriod);
         }
         totalReceived = newTotal;
+        emit Deposit(msg.sender, msg.value);
     }
 
     function verify(bytes32[] calldata proof) internal view {
@@ -234,6 +240,7 @@ contract InitialLiquidityPool is Ownable {
         require(amount > 0, "Nothing to withdraw");
         userAmounts[msg.sender].amount = 0;
         msg.sender.transfer(amount);
+        emit Withdrawal(msg.sender, amount);
     }
 
     // once the streaming period begins, this returns the currently claimable
@@ -261,6 +268,7 @@ contract InitialLiquidityPool is Ownable {
             amount
         );
         rewardToken.transfer(msg.sender, amount);
+        emit Claim(msg.sender, amount);
     }
 
     // withdraw all available `rewardToken` balance immediately
@@ -300,5 +308,6 @@ contract InitialLiquidityPool is Ownable {
             uint256 remaining = rewardToken.balanceOf(address(this));
             rewardToken.transfer(address(0xdead), remaining);
         }
+        emit EarlyExit(msg.sender, claimable);
     }
 }
