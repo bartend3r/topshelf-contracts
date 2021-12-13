@@ -104,10 +104,6 @@ contract InitialLiquidityPool is Ownable {
         bytes32 _whitelistRoot1,
         bytes32 _whitelistRoot2
     ) public Ownable() {
-        // safety check to make sure treasury is configured correctly
-        // so we don't end up bricking everything in `addLiquidity`
-        require(ILQTYTreasury(_treasury).issuanceStartTime() > block.timestamp);
-
         WETH = _weth;
         rewardToken = _rewardToken;
         oracle = _oracle;
@@ -121,6 +117,10 @@ contract InitialLiquidityPool is Ownable {
 
         whitelistRoot1 = _whitelistRoot1;
         whitelistRoot2 = _whitelistRoot2;
+
+        streamStartTime = ILQTYTreasury(_treasury).issuanceStartTime();
+        streamEndTime = streamStartTime.add(streamDuration);
+        require(streamStartTime > block.timestamp);
     }
 
     // `rewardToken` should be transferred into the contract prior to calling this method
@@ -221,9 +221,6 @@ contract InitialLiquidityPool is Ownable {
         rewardToken.transfer(lpToken, rewardTokenLpAmount);
         IUniswapV2Pair(lpToken).mint(treasury);
 
-        streamStartTime = ILQTYTreasury(treasury).issuanceStartTime();
-        streamEndTime = streamStartTime.add(streamDuration);
-
         currentDepositTotal = totalReceived;
         currentRewardTotal = rewardTokenSaleAmount;
         liquidityAdded = true;
@@ -246,7 +243,7 @@ contract InitialLiquidityPool is Ownable {
     // once the streaming period begins, this returns the currently claimable
     // balance of `rewardToken` for a contributor
     function claimable(address _user) public view returns (uint256) {
-        if (streamStartTime == 0 || block.timestamp < streamStartTime) {
+        if (block.timestamp < streamStartTime || !liquidityAdded) {
             return 0;
         }
         uint256 totalClaimable = currentRewardTotal.mul(userAmounts[_user].amount).div(
@@ -263,6 +260,7 @@ contract InitialLiquidityPool is Ownable {
     // claim a pending `rewardToken` balance
     function claimReward() external {
         require(!isKilled, "Killed");
+        require(liquidityAdded, "Liquidity was not added");
         uint256 amount = claimable(msg.sender);
         userAmounts[msg.sender].streamed = userAmounts[msg.sender].streamed.add(
             amount
@@ -278,6 +276,7 @@ contract InitialLiquidityPool is Ownable {
     // early, any remaining tokens are are burned.
     function earlyExit() external {
         require(!isKilled, "Killed");
+        require(liquidityAdded, "Liquidity was not added");
         require(block.timestamp > streamStartTime, "Streaming not active");
         require(block.timestamp < streamEndTime, "Streaming has finished");
         require(userAmounts[msg.sender].amount > 0, "No balance");
