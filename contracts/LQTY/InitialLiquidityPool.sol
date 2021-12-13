@@ -97,7 +97,7 @@ contract InitialLiquidityPool {
     ) public {
         // safety check to make sure treasury is configured correctly
         // so we don't end up bricking everything in `addLiquidity`
-        require(ILQTYTreasury(treasury).issuanceStartTime() > block.timestamp);
+        require(ILQTYTreasury(_treasury).issuanceStartTime() > block.timestamp);
 
         WETH = _weth;
         rewardToken = _rewardToken;
