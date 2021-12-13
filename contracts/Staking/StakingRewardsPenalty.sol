@@ -178,16 +178,16 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
 
     function addFeeAmount(uint256 _amount) internal {
         uint256 idx = block.timestamp.sub(startTime).div(604800);
-        uint256 amount;
+        uint256 lpAmount;
 
         if (feeIndex < idx) {
             while (feeIndex < idx) {
-                amount = amount.add(feeAmounts[feeIndex]);
+                lpAmount = lpAmount.add(feeAmounts[feeIndex]);
                 feeIndex++;
             }
-            if (amount > 0) {
+            if (lpAmount > 0) {
                 // withdraw LP position
-                stakingToken.transfer(address(stakingToken), amount);
+                stakingToken.transfer(address(stakingToken), lpAmount);
                 stakingToken.burn(address(this));
 
                 // burn the LIQR withdrawn from the LP position
@@ -196,18 +196,18 @@ contract StakingRewardsPenalty is ReentrancyGuard, Pausable {
 
                 // add the reward token to the LIQR staking contract
                 uint256 rewardAmount = wantToken.balanceOf(address(this));
-                wantToken.safeTransfer(feeReceiver, amount);
+                wantToken.safeTransfer(feeReceiver, rewardAmount);
                 IMultiRewards(feeReceiver).notifyRewardAmount(address(wantToken), rewardAmount);
-                emit FeeProcessed(amount, burnAmount, rewardAmount);
+                emit FeeProcessed(lpAmount, burnAmount, rewardAmount);
             }
         }
         // transfer 50% of fee tokens to treasury
-        amount = _amount.div(2);
-        stakingToken.transfer(treasury, amount);
+        lpAmount = _amount.div(2);
+        stakingToken.transfer(treasury, lpAmount);
 
         // hold remaining fee tokens for 8 weeks
         idx = idx.add(8);
-        feeAmounts[idx] = feeAmounts[idx].add(_amount.sub(amount));
+        feeAmounts[idx] = feeAmounts[idx].add(_amount.sub(lpAmount));
     }
 
     // `amount` is the total amount to deposit, inclusive of any fee amount to be paid
