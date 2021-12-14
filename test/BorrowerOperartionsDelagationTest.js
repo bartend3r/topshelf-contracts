@@ -53,6 +53,7 @@ contract('BorrowerOperations', async accounts => {
   let sortedTroves
   let troveManager
   let activePool
+  let collSurplusPool
   let stabilityPool
   let defaultPool
   let borrowerOperations
@@ -74,7 +75,8 @@ contract('BorrowerOperations', async accounts => {
   let LUSD_GAS_COMPENSATION
   let MIN_NET_DEBT
   let BORROWING_FEE_FLOOR
-
+  let A_GAIN
+  let CALLER_GAIN
 
 
   beforeEach(async () => {
@@ -94,6 +96,7 @@ contract('BorrowerOperations', async accounts => {
     troveManager = contracts.troveManager
     activePool = contracts.activePool
     stabilityPool = contracts.stabilityPool
+    collSurplusPool = contracts.collSurplusPool
     defaultPool = contracts.defaultPool
     borrowerOperations = contracts.borrowerOperations
     hintHelpers = contracts.hintHelpers
@@ -279,6 +282,174 @@ contract('BorrowerOperations', async accounts => {
     const ownerLUSDEnd = await lusdToken.balanceOf(owner);
     assert.equal(ownerLUSDEnd.toString(), ownerLUSDStart.toString());
   })    
-  
+
+  const redeemCollateral3Full1Partial = async () => {
+    // time fast-forwards 1 year, and multisig stakes 1 LQTY
+    await th.fastForwardTime(timeValues.SECONDS_IN_ONE_YEAR, web3.currentProvider)
+    await lqtyToken.approve(lqtyStaking.address, dec(1, 18), { from: multisig })
+    await lqtyStaking.stake(dec(1, 18), { from: multisig })
+
+    const { netDebt: W_netDebt } = await openTrove({ ICR: toBN(dec(20, 18)), extraLUSDAmount: dec(10000, 18), extraParams: { from: whale } })
+    await borrowerOperations.setDelegateApproval(caller, true, { from: A })
+    await borrowerOperations.setDelegateApproval(caller, true, { from: B })
+    await borrowerOperations.setDelegateApproval(caller, true, { from: C })
+
+    const { netDebt: A_netDebt, collateral: A_coll } = await openTrove({ ICR: toBN(dec(200, 16)), extraLUSDAmount: dec(100, 18), extraParams: { troveFor: A,  from: caller } })
+    const { netDebt: B_netDebt, collateral: B_coll } = await openTrove({ ICR: toBN(dec(190, 16)), extraLUSDAmount: dec(100, 18), extraParams: { troveFor: B,  from: caller } })
+    const { netDebt: C_netDebt, collateral: C_coll } = await openTrove({ ICR: toBN(dec(180, 16)), extraLUSDAmount: dec(100, 18), extraParams: { troveFor: C,  from: caller } })
+    const { netDebt: D_netDebt } = await openTrove({ ICR: toBN(dec(280, 16)), extraLUSDAmount: dec(100, 18), extraParams: { from: D } })
+    const redemptionAmount = A_netDebt.add(B_netDebt).add(C_netDebt).add(toBN(dec(10, 18)))
+
+    const A_balanceBefore = toBN(await  contracts.collateral.balanceOf(A))
+    const B_balanceBefore = toBN(await  contracts.collateral.balanceOf(B))
+    const C_balanceBefore = toBN(await  contracts.collateral.balanceOf(C))
+    const D_balanceBefore = toBN(await  contracts.collateral.balanceOf(D))
+
+    const A_collBefore = await troveManager.getTroveColl(A)
+    const B_collBefore = await troveManager.getTroveColl(B)
+    const C_collBefore = await troveManager.getTroveColl(C)
+    const D_collBefore = await troveManager.getTroveColl(D)
+
+    // Confirm baseRate before redemption is 0
+    const baseRate = await troveManager.baseRate()
+    assert.equal(baseRate, '0')
+
+    // whale redeems LUSD.  Expect this to fully redeem A, B, C, and partially redeem D.
+    await th.redeemCollateral(whale, contracts, redemptionAmount)
+
+    // Check A, B, C have been closed
+    assert.isFalse(await sortedTroves.contains(A))
+    assert.isFalse(await sortedTroves.contains(B))
+    assert.isFalse(await sortedTroves.contains(C))
+
+    // Check D stays active
+    assert.isTrue(await sortedTroves.contains(D))
+
+    /*
+    At ETH:USD price of 200, with full redemptions from A, B, C:
+
+    ETHDrawn from A = 100/200 = 0.5 ETH --> Surplus = (1-0.5) = 0.5
+    ETHDrawn from B = 120/200 = 0.6 ETH --> Surplus = (1-0.6) = 0.4
+    ETHDrawn from C = 130/200 = 0.65 ETH --> Surplus = (2-0.65) = 1.35
+    */
+
+    const A_balanceAfter = toBN(await  contracts.collateral.balanceOf(A))
+    const B_balanceAfter = toBN(await  contracts.collateral.balanceOf(B))
+    const C_balanceAfter = toBN(await  contracts.collateral.balanceOf(C))
+    const D_balanceAfter = toBN(await  contracts.collateral.balanceOf(D))
+
+    // Check A, B, C’s trove collateral balance is zero (fully redeemed-from troves)
+    const A_collAfter = await troveManager.getTroveColl(A)
+    const B_collAfter = await troveManager.getTroveColl(B)
+    const C_collAfter = await troveManager.getTroveColl(C)
+    assert.isTrue(A_collAfter.eq(toBN(0)))
+    assert.isTrue(B_collAfter.eq(toBN(0)))
+    assert.isTrue(C_collAfter.eq(toBN(0)))
+
+    // check D's trove collateral balances have decreased (the partially redeemed-from trove)
+    const D_collAfter = await troveManager.getTroveColl(D)
+    assert.isTrue(D_collAfter.lt(D_collBefore))
+
+    // Check A, B, C (fully redeemed-from troves), and D's (the partially redeemed-from trove) balance has not changed
+    assert.isTrue(A_balanceAfter.eq(A_balanceBefore))
+    assert.isTrue(B_balanceAfter.eq(B_balanceBefore))
+    assert.isTrue(C_balanceAfter.eq(C_balanceBefore))
+    assert.isTrue(D_balanceAfter.eq(D_balanceBefore))
+
+    // D is not closed, so cannot open trove
+    await assertRevert(borrowerOperations.openTrove(D, th._100pct, dec(10, 18), 0, ZERO_ADDRESS, ZERO_ADDRESS, { from: D }), 'BorrowerOps: Trove is active')
+
+    return {
+      A_netDebt, A_coll,
+      B_netDebt, B_coll,
+      C_netDebt, C_coll,
+    }
+  }  
+  it("redeemCollateral(): a redemption that closes a trove leaves the trove's ETH surplus (collateral - ETH drawn) available for the delegator to claim", async () => {
+    const {
+      A_netDebt, A_coll,
+      B_netDebt, B_coll,
+      C_netDebt, C_coll,
+    } = await redeemCollateral3Full1Partial()
+
+    const A_balanceBefore = toBN(await  contracts.collateral.balanceOf(A))
+    const B_balanceBefore = toBN(await  contracts.collateral.balanceOf(B))
+    const C_balanceBefore = toBN(await  contracts.collateral.balanceOf(C))
+
+    // CollSurplusPool endpoint cannot be called directly
+    await assertRevert(collSurplusPool.claimColl(A, A), 'CollSurplusPool: Caller is not Borrower Operations')
+
+    assert(await borrowerOperations.claimCollateral(A, { from: caller, gasPrice: 0 }))
+    assert(await borrowerOperations.claimCollateral(B, { from: caller, gasPrice: 0 }))
+    assert(await borrowerOperations.claimCollateral(C, { from: caller, gasPrice: 0 }))
+
+  })
+
+  it("redeemCollateral(): a redemption that closes a trove leaves the trove's ETH surplus (collateral - ETH drawn) available; owner claims, caller cannot", async () => {
+    const {
+      A_netDebt, A_coll,
+      B_netDebt, B_coll,
+      C_netDebt, C_coll,
+    } = await redeemCollateral3Full1Partial()
+
+    const A_balanceBefore = toBN(await contracts.collateral.balanceOf(A))
+    const B_balanceBefore = toBN(await  contracts.collateral.balanceOf(B))
+    const C_balanceBefore = toBN(await  contracts.collateral.balanceOf(C))
+
+    // CollSurplusPool endpoint cannot be called directly
+    await assertRevert(collSurplusPool.claimColl(A, A), 'CollSurplusPool: Caller is not Borrower Operations')
+    
+    // tx in try/catch should fail, if it doesn't then caller's collat balance should increase
+    const caller_balanceBefore = toBN(await contracts.collateral.balanceOf(caller));
+    assert(await borrowerOperations.claimCollateral(A, { from: A, gasPrice: 0 }))
+    try {
+      const tx = await borrowerOperations.claimCollateral(A, { from: caller, gasPrice: 0 })
+    } catch (err) {
+      assert.include(err.message, "CollSurplusPool: No collateral available to claim")
+    }
+    const caller_balanceAfter = toBN(await contracts.collateral.balanceOf(caller));
+    // if the TX above passes, the this will fail:
+    assert.equal(caller_balanceAfter.toString(), caller_balanceBefore.toString());
+    
+    const a_after = await contracts.collateral.balanceOf(A);
+    A_GAIN = a_after.sub(A_balanceBefore);
+  })
+
+  it("redeemCollateral(): a redemption that closes a trove leaves the trove's ETH surplus (collateral - ETH drawn) available; caller claims, owner cannot", async () => {
+    const {
+      A_netDebt, A_coll,
+      B_netDebt, B_coll,
+      C_netDebt, C_coll,
+    } = await redeemCollateral3Full1Partial()
+
+    const A_balanceBefore = toBN(await  contracts.collateral.balanceOf(A))
+    const B_balanceBefore = toBN(await  contracts.collateral.balanceOf(B))
+    const C_balanceBefore = toBN(await  contracts.collateral.balanceOf(C))
+    const caller_balanceBefore = toBN(await contracts.collateral.balanceOf(caller))
+
+    // CollSurplusPool endpoint cannot be called directly
+    await assertRevert(collSurplusPool.claimColl(A, A), 'CollSurplusPool: Caller is not Borrower Operations')
+    
+    // tx in try/catch should fail, if it doesn't then owner's collat balance should increase
+    const owner_balanceBefore = toBN(await contracts.collateral.balanceOf(A))
+    assert(await borrowerOperations.claimCollateral(A, { from: caller, gasPrice: 0 }))
+    try {
+      const tx = await borrowerOperations.claimCollateral(A, { from: A, gasPrice: 0 })
+    } catch (err) {
+       assert.include(err.message, "CollSurplusPool: No collateral available to claim")
+    }
+    const owner_balanceAfter = toBN(await contracts.collateral.balanceOf(A));
+    // if the TX above passes, the this will fail:
+    assert.equal(owner_balanceAfter.toString(), owner_balanceBefore.toString());
+    const caller_after = await contracts.collateral.balanceOf(caller);
+
+    CALLER_GAIN = caller_after.sub(caller_balanceBefore);
+  })
+
+  it("redeemCollateral(): caller and owner's claims on collat surplus is equal", async () => {
+    assert.equal(CALLER_GAIN.toString(), A_GAIN.toString());
+  })
+
+
 
 })
