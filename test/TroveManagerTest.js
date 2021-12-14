@@ -4222,11 +4222,11 @@ contract('TroveManager', async accounts => {
     const C_balanceBefore = toBN(await  contracts.collateral.balanceOf(C))
 
     // CollSurplusPool endpoint cannot be called directly
-    // await assertRevert(collSurplusPool.claimColl(A), 'CollSurplusPool: Caller is not Borrower Operations')
+    await assertRevert(collSurplusPool.claimColl(A, A), 'CollSurplusPool: Caller is not Borrower Operations')
 
-    await borrowerOperations.claimCollateral({ from: A, gasPrice: 0 })
-    await borrowerOperations.claimCollateral({ from: B, gasPrice: 0 })
-    await borrowerOperations.claimCollateral({ from: C, gasPrice: 0 })
+    await borrowerOperations.claimCollateral(A, { from: A, gasPrice: 0 })
+    await borrowerOperations.claimCollateral(B, { from: B, gasPrice: 0 })
+    await borrowerOperations.claimCollateral(C, { from: C, gasPrice: 0 })
 
     const A_balanceAfter = toBN(await  contracts.collateral.balanceOf(A))
     const B_balanceAfter = toBN(await  contracts.collateral.balanceOf(B))
@@ -4267,9 +4267,9 @@ contract('TroveManager', async accounts => {
     const B_balanceBefore = toBN(await  contracts.collateral.balanceOf(B))
     const C_balanceBefore = toBN(await  contracts.collateral.balanceOf(C))
 
-    await borrowerOperations.claimCollateral({ from: A, gasPrice: 0 })
-    await borrowerOperations.claimCollateral({ from: B, gasPrice: 0 })
-    await borrowerOperations.claimCollateral({ from: C, gasPrice: 0 })
+    await borrowerOperations.claimCollateral(A, { from: A, gasPrice: 0 })
+    await borrowerOperations.claimCollateral(B, { from: B, gasPrice: 0 })
+    await borrowerOperations.claimCollateral(C, { from: C, gasPrice: 0 })
 
     const A_balanceAfter = toBN(await  contracts.collateral.balanceOf(A))
     const B_balanceAfter = toBN(await  contracts.collateral.balanceOf(B))

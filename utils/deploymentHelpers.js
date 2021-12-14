@@ -167,7 +167,7 @@ class DeploymentHelper {
 
   static async deployLQTYContractsHardhat(bountyAddress, lpRewardsAddress, multisigAddress) {
     const lqtyStaking = await LQTYStaking.new()
-    const communityIssuance = await CommunityIssuance.new("32000000000000000000000000", "999998681227695000")
+    const communityIssuance = await CommunityIssuance.new("32000000000000000000000000", "999998681227695000", 0)
     const lqtyTreasury = await LQTYTreasury.new(0)
 
     LQTYStaking.setAsDeployed(lqtyStaking)
