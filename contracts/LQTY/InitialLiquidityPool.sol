@@ -139,6 +139,20 @@ contract InitialLiquidityPool is Ownable {
         isKilled = true;
     }
 
+    function setPriceFromOracle() external onlyOwner {
+        require(softCapInETH == 0, "Already set");
+        require(block.timestamp >= depositStartTime.sub(300), "Too soon");
+        setPrice();
+    }
+
+    function setPrice() internal {
+        uint256 answer = uint256(oracle.latestAnswer());
+        uint256 decimals = oracle.decimals();
+        softCapInETH = softCapInUSD.mul(1e18).mul(10**decimals).div(answer);
+        hardCapInETH = hardCapInUSD.mul(1e18).mul(10**decimals).div(answer);
+        initialContributionCapInETH = initialContributionCapInUSD.mul(1e18).mul(10**decimals).div(answer);
+    }
+
     function currentContributorCapInETH() public view returns (uint256) {
         if (block.timestamp < depositStartTime.add(14400)) {
             uint256 cap = initialContributionCapInETH;
@@ -161,11 +175,7 @@ contract InitialLiquidityPool is Ownable {
         if (softCapInETH == 0) {
             // on the first deposit, use chainlink to determine
             // the ETH equivalant for the soft and hard caps
-            uint256 answer = uint256(oracle.latestAnswer());
-            uint256 decimals = oracle.decimals();
-            softCapInETH = softCapInUSD.mul(1e18).mul(10**decimals).div(answer);
-            hardCapInETH = hardCapInUSD.mul(1e18).mul(10**decimals).div(answer);
-            initialContributionCapInETH = initialContributionCapInUSD.mul(1e18).mul(10**decimals).div(answer);
+            setPrice();
         }
 
         // check contributor cap and update user contribution amount
