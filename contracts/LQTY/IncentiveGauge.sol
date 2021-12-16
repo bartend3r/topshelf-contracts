@@ -14,8 +14,8 @@ contract IncentiveGauge is Ownable {
     IERC20 public lqtyToken;
     ICommunityIssuance public communityIssuance;
 
-    uint256 issued;
-    uint256 available;
+    uint256 public issued;
+    uint256 public available;
 
     constructor(address _lqtyTokenAddress, address _communityIssuanceAddress) public Ownable() {
         lqtyToken = IERC20(_lqtyTokenAddress);
