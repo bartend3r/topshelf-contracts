@@ -202,6 +202,7 @@ contract LUSDToken is CheckContract, ILUSDToken {
         override
     {
         require(deadline >= now, 'LUSD: expired deadline');
+        require(owner != address(0));
         bytes32 digest = keccak256(abi.encodePacked('\x19\x01',
                          domainSeparator(), keccak256(abi.encode(
                          _PERMIT_TYPEHASH, owner, spender, amount,
