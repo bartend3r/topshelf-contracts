@@ -301,7 +301,10 @@ contract PriceFeed is CheckContract, BaseMath, IPriceFeed {
             }
 
              // If Chainlink is live and Band is frozen, just use last good price (no status change) since we have no basis for comparison
-            if (_bandIsFrozen(bandResponse)) {return lastGoodPrice;}
+            if (_bandIsFrozen(bandResponse)) {
+                _changeStatus(Status.usingChainlinkBandUntrusted);
+                return lastGoodPrice;
+            }
 
             // If Chainlink is live and Band is working, compare prices. Switch to Chainlink
             // if prices are within 5%, and return Chainlink price.
