@@ -1261,6 +1261,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
 
         _removeTroveOwner(_borrower, TroveOwnersArrayLength);
         sortedTroves.remove(_borrower);
+        Troves[_borrower].arrayIndex = 0;
     }
 
     /*
